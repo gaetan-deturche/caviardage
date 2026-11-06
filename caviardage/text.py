@@ -254,9 +254,6 @@ def split_ordinal(word):
 
 def ordinal_ending(word):
     """The ending of a guessed number, in any case: th for 7TH, e for xixe."""
-    match = NUMBER_THEN_ENDING_RE.fullmatch(word.lower().replace("i", "I").replace("v", "V").replace("x", "X"))
-    if match:
-        return match.group(2).lower()
     match = re.fullmatch(r"(?:\d{1,15}|[ivxlcdm]+)(er|re|ère|ème|eme|es|e|ᵉʳ|ʳᵉ|ᵉ|st|nd|rd|th)", word.lower())
     return match.group(1) if match else None
 
