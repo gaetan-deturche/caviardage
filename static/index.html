@@ -234,6 +234,14 @@ async function post(path, body) {
   return response.json();
 }
 
+const COUNT_SECONDS = 3;
+const countTimers = new Map();
+
+// On a touch screen, focusing the field opens the keyboard over what you just tapped.
+function focusField() {
+  if (matchMedia("(pointer: fine)").matches) $("word").focus();
+}
+
 function makeSlot(token) {
   const slot = document.createElement("button");
   slot.type = "button";
@@ -250,9 +258,17 @@ function makeSlot(token) {
     ? (percent !== null ? `${t().letters(token.length)} · ${t().percent(percent)}` : t().letters(token.length))
     : (token.near || " ");
   slot.addEventListener("click", () => {
-    if (countsShown.has(token.i)) countsShown.delete(token.i); else countsShown.add(token.i);
+    clearTimeout(countTimers.get(token.i));
+    if (countsShown.has(token.i)) {
+      countsShown.delete(token.i);
+    } else {
+      countsShown.add(token.i);
+      countTimers.set(token.i, setTimeout(() => {
+        if (countsShown.delete(token.i)) render();
+      }, COUNT_SECONDS * 1000));
+    }
     render();
-    $("word").focus();
+    focusField();
   });
   return slot;
 }
@@ -362,7 +378,7 @@ function adopt(state, resumed) {
   paintCopy();
   say("");
   render();
-  if (!game.finished) $("word").focus();
+  if (!game.finished) focusField();
 }
 
 async function resume(id) {
