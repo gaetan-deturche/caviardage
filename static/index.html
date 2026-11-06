@@ -239,7 +239,18 @@ const countTimers = new Map();
 
 // On a touch screen, focusing the field opens the keyboard over what you just tapped.
 function focusField() {
-  if (matchMedia("(pointer: fine)").matches) $("word").focus();
+  if (matchMedia("(pointer: fine)").matches) $("word").focus({ preventScroll: true });
+}
+
+// An open keyboard shrinks the visible part of the page and can slide it away from the top.
+// Pinning only knows the page's own top, so the bar is moved to where the visible part starts.
+function pinBar() {
+  const view = window.visualViewport;
+  if (!view) return;
+  const bar = document.querySelector(".entrybar");
+  bar.style.transform = "";
+  const shift = view.offsetTop - bar.getBoundingClientRect().top;
+  if (shift > 0) bar.style.transform = `translateY(${shift}px)`;
 }
 
 function makeSlot(token) {
@@ -461,7 +472,7 @@ async function drain() {
     }
   }
   busy = false;
-  if (game && !game.finished) $("word").focus();
+  if (game && !game.finished) $("word").focus({ preventScroll: true });
 }
 
 $("entry").addEventListener("submit", event => {
@@ -522,6 +533,23 @@ $("giveup").addEventListener("click", async () => {
     render();
   } catch {
     say(t().net, true);
+  }
+});
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", pinBar);
+  window.visualViewport.addEventListener("scroll", pinBar);
+  window.addEventListener("scroll", pinBar, { passive: true });
+}
+
+// Tapping the field normally makes the browser scroll to it. Focus it ourselves so the page stays put.
+$("word").addEventListener("touchend", event => {
+  if (document.activeElement === $("word")) return;
+  event.preventDefault();
+  $("word").focus({ preventScroll: true });
+  const y = window.scrollY;
+  for (const wait of [50, 300, 600]) {
+    setTimeout(() => { if (Math.abs(window.scrollY - y) > 2) window.scrollTo(0, y); pinBar(); }, wait);
   }
 });
 

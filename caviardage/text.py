@@ -184,6 +184,37 @@ def number_tier(a, b):
     return None, 0.0
 
 
+LEAD_NAME_RE = re.compile(r"^([^.:;()]{2,70}?)\s*\(([^)]{1,200})\)")
+LEADING_ARTICLES = {"le", "la", "les", "l", "un", "une", "des", "the", "a", "an"}
+NAME_VERBS = {"est", "sont", "était", "étaient", "fut", "furent", "is", "are", "was", "were"}
+MAX_NAME_WORDS = 4
+TITLE_IN_PARENTHESES_WITHIN = 40
+
+
+def other_name(title, first_paragraph, lang):
+    """The name an article opens with when its title only follows in parentheses.
+
+    "Les mollusques (Mollusca) sont..." gives ["mollusques"] for the title Mollusca.
+    Returns the words of that name, or [] when the article doesn't open this way.
+    """
+    match = LEAD_NAME_RE.match(first_paragraph)
+    if not match:
+        return []
+    position = fold(match.group(2)).find(fold(title))
+    if position < 0 or position > TITLE_IN_PARENTHESES_WITHIN:
+        return []
+    words = [t["text"] for t in tokenize(match.group(1)) if t["word"]]
+    while words and words[0].lower() in LEADING_ARTICLES:
+        words.pop(0)
+    if not words or len(words) > MAX_NAME_WORDS or fold(" ".join(words)) == fold(title):
+        return []
+    if any(word.lower() in NAME_VERBS for word in words):
+        return []  # "Les mollusques sont un groupe (Mollusca)" is a sentence, not a name.
+    if all(is_stopword(word, lang) for word in words):
+        return []
+    return words
+
+
 def tokenize(text):
     """Split text into [{"word": bool, "text": str}], keeping everything else as is."""
     tokens, position = [], 0

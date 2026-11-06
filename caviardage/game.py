@@ -44,6 +44,8 @@ class Game:
                 self._add(token, "body")
 
         self.words = [t for t in self.tokens if t["word"]]
+        self.other_name = text.other_name(article["title"], article["paragraphs"][0], lang) if article["paragraphs"] else []
+        self.other_name_left = set(range(len(self.other_name)))
         self.targets = {t["text"].lower() for t in self.words if not text.is_stopword(t["text"], lang)}
         for index, token in enumerate(self.tokens):
             if token["word"]:
@@ -157,7 +159,11 @@ class Game:
                         near_hits += 1
 
         self.guesses[text.fold(word)] = {"word": word, "tier": best, "hits": len(same)}
-        if self.title_slots and all(t["revealed"] for t in self.title_slots):
+        self.other_name_left = {
+            i for i in self.other_name_left if not guess_keys & text.keys(self.other_name[i], self.lang)
+        }
+        title_found = self.title_slots and all(t["revealed"] for t in self.title_slots)
+        if title_found or (self.other_name and not self.other_name_left):
             self.finished = True
         return {"word": word, "tier": best, "hits": len(same), "near": near_hits, "matches": matches, "state": self.state()}
 
