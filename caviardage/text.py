@@ -88,6 +88,20 @@ def _accent_variants(word, lang):
 
 
 @functools.lru_cache(maxsize=4000)
+def _plural_lemma(word, lang):
+    """The base form of a plural the word list lacks: relativités -> relativité."""
+    if len(word) < 4 or _known(word, lang):
+        return None
+    for ending in ("s", "x", "es"):
+        if word.endswith(ending):
+            singular = word[: -len(ending)]
+            for spelling in [singular] + _accent_variants(singular, lang):
+                found = store.lemma(lang, spelling)
+                if found:
+                    return found
+    return None
+
+
 def lemmas(word, lang):
     """Every base form a word could have, most likely first."""
     lower = word.lower()
@@ -95,7 +109,7 @@ def lemmas(word, lang):
     spellings = [lower] + _accent_variants(lower, lang)
     found = []
     for spelling in spellings:
-        for lemma in AMBIGUOUS.get(lang, {}).get(spelling, []) + [store.lemma(lang, spelling) or spelling]:
+        for lemma in AMBIGUOUS.get(lang, {}).get(spelling, []) + [store.lemma(lang, spelling) or _plural_lemma(spelling, lang) or spelling]:
             if lemma not in found:
                 found.append(lemma)
     return tuple(found)
@@ -120,7 +134,8 @@ def keys(word, lang):
 
 
 def is_real_word(word, lang):
-    return _known(word.lower(), lang) or bool(_accent_variants(word.lower(), lang))
+    lower = word.lower()
+    return _known(lower, lang) or bool(_accent_variants(lower, lang)) or bool(_plural_lemma(lower, lang))
 
 
 @functools.lru_cache(maxsize=4000)

@@ -32,6 +32,10 @@ def test_kinds_of_a_category_are_close_however_far_up(closeness, a, b, lang):
     assert closeness.tier(a, b, lang)[0] in ("scene", "family")
 
 
+def test_plural_missing_from_the_word_list_still_gets_closeness(closeness):
+    assert closeness.score("relativités", "relativité", "fr") > 0.99
+
+
 def test_pangolin_is_not_family(closeness):
     assert closeness.tier("pangolin", "primate", "en")[0] == "scene"
 
