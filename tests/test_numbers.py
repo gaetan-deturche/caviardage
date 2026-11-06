@@ -56,7 +56,8 @@ def test_tiers(a, b, tier):
 
 
 def test_closer_scores_higher():
-    assert text.number_tier(1882, 1883)[1] > text.number_tier(1880, 1883)[1]
+    assert text.number_tier(1882, 1883)[1] > text.number_tier(1880, 1883)[1] > text.number_tier(1800, 1883)[1]
+    assert 0 < text.number_tier(1800, 1883)[1] < 1
 
 
 ARTICLE = {

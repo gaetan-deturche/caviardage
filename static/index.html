@@ -14,7 +14,7 @@
   --same: #1f7a4d; --same-bg: #d5ecdf;
   --family: #b4540f; --family-bg: #f8dcc2; --family-text: #6e3105;
   --scene: #8f7600; --scene-bg: #f5ecb0; --scene-text: #554600;
-  --stamp: #a32638;
+  --stamp: #a32638; --family-line: #c75b10; --scene-line: #c9a400;
   --type: "Special Elite", "Courier New", monospace;
   --body: "Source Serif 4", Georgia, serif;
   --ui: "Barlow Semi Condensed", "Arial Narrow", Arial, sans-serif;
@@ -26,7 +26,7 @@
     --same: #63c994; --same-bg: #173c2a;
     --family: #f0a062; --family-bg: #4d2a10; --family-text: #fbd7b8;
     --scene: #dcc54b; --scene-bg: #423a0b; --scene-text: #f1e596;
-    --stamp: #e86a7d;
+    --stamp: #e86a7d; --family-line: #e8772a; --scene-line: #d8b400;
     color-scheme: dark;
   }
 }
@@ -59,13 +59,19 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
 #text p { margin: 0 0 16px; max-width: 72ch; overflow-wrap: anywhere; }
 
 .slot { display: inline-block; font: inherit; line-height: 1.2; vertical-align: baseline; border-radius: 2px; background: var(--bar); color: var(--bar-text); padding: 0 3px; margin: 0 1px; cursor: pointer; border: 0; text-align: center; }
-.slot.family { background: var(--family-bg); color: var(--family-text); box-shadow: inset 0 -2px 0 var(--family); font-style: italic; }
-.slot.scene { background: var(--scene-bg); color: var(--scene-text); box-shadow: inset 0 -2px 0 var(--scene); font-style: italic; }
+/* The closer a guess, the whiter its bar. The underline shows which kind of link it is. */
+.slot.family, .slot.scene { background: color-mix(in srgb, #fff calc(var(--shade) * 100%), var(--bar)); color: var(--bar-text); font-style: italic; outline: 1px solid var(--line); outline-offset: -1px; }
+.slot.family { box-shadow: inset 0 -3px 0 var(--family-line); }
+.slot.scene { box-shadow: inset 0 -3px 0 var(--scene-line); }
+.slot.bright { color: #1d2a33; }
+.ramp { height: 10px; border-radius: 2px; margin-top: 8px; background: linear-gradient(90deg, var(--bar), #fff); outline: 1px solid var(--line); outline-offset: -1px; }
+.easy { display: flex; gap: 6px; align-items: center; margin-top: 10px; cursor: pointer; }
+.ramp-labels { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; margin-top: 2px; }
 .slot.count { font: 600 .8em/1.55 var(--ui); }
 .shown.fresh { background: var(--same-bg); color: var(--same); font-weight: 600; border-radius: 2px; box-shadow: 0 0 0 1px var(--same-bg); }
 .gaveup .shown { color: var(--ink); }
 
-.side { position: sticky; top: 16px; display: grid; gap: 16px; max-height: calc(100vh - 32px); overflow: auto; }
+.side { position: sticky; top: 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; max-height: calc(100vh - 32px); overflow: auto; }
 .card { background: var(--paper); border: 1px solid var(--line); border-radius: 3px; padding: 14px 16px; font-family: var(--ui); font-size: 15px; line-height: 1.4; }
 .card h2 { margin: 0 0 8px; font: 600 13px/1.2 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .code { font: 400 26px/1.2 var(--type); letter-spacing: .04em; overflow-wrap: anywhere; }
@@ -127,7 +133,9 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
           <button class="btn" id="joinSend" type="submit"></button>
         </form>
       </section>
-      <section class="card"><h2 id="legendLabel"></h2><ul class="legend" id="legend"></ul></section>
+      <section class="card"><h2 id="legendLabel"></h2><ul class="legend" id="legend"></ul>
+        <div class="ramp"></div><div class="ramp-labels"><span id="rampFar"></span><span id="rampClose"></span></div>
+        <label class="easy"><input type="checkbox" id="easy"> <span id="easyLabel"></span></label></section>
       <section class="card"><h2 id="logLabel"></h2><ul id="log"></ul></section>
     </aside>
   </div>
@@ -135,22 +143,24 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
 <script>
 const COPY = {
   fr: {
-    team: "À plusieurs", teamHint: "Partagez ce code : vos amis jouent la même page, et chaque mot trouvé apparaît chez tout le monde.", joinHint: "Code d'un ami", joinSend: "Rejoindre", noCode: "Ce code ne correspond à aucune partie. Vérifiez-le auprès de votre ami.", others: n => `${n} nouvel${n > 1 ? "s" : ""} essai${n > 1 ? "s" : ""} d'un autre joueur.`, share: "Copier le lien", copied: "Lien copié. Ouvrez-le n'importe où pour reprendre cette partie.", gone: "Cette partie est introuvable. Voici une nouvelle page.", famous: "Pages très connues", wide: "Pages connues", deep: "100 000 pages (difficile)", next: "Nouvelle page", giveup: "Abandonner", sure: "Confirmer l'abandon",
+    easy: "Mode facile : voir le % en cliquant sur une barre", far: "loin", close: "proche", percent: n => `${n} %`, closeLabel: (n, word) => `« ${word} » est proche à ${n} %`, team: "À plusieurs", teamHint: "Partagez ce code : vos amis jouent la même page, et chaque mot trouvé apparaît chez tout le monde.", joinHint: "Code d'un ami", joinSend: "Rejoindre", noCode: "Ce code ne correspond à aucune partie. Vérifiez-le auprès de votre ami.", others: n => `${n} nouvel${n > 1 ? "s" : ""} essai${n > 1 ? "s" : ""} d'un autre joueur.`, share: "Copier le lien", copied: "Lien copié. Ouvrez-le n'importe où pour reprendre cette partie.", gone: "Cette partie est introuvable. Voici une nouvelle page.", famous: "Pages très connues", wide: "Pages connues", deep: "100 000 pages (difficile)", next: "Nouvelle page", giveup: "Abandonner", sure: "Confirmer l'abandon",
     send: "Essayer", placeholder: "Un mot, sous n'importe quelle forme", count: "Essais", legend: "Couleurs", log: "Vos essais",
     same: "Même mot, quelle que soit la forme", family: "Lien direct (singe → primate)", scene: "Même domaine (roi → château)", none: "Pas de lien trouvé",
     loading: "Choix d'une page…", noPage: "Wikipédia n'a pas renvoyé de page. Attendez un instant, puis cliquez sur Nouvelle page.", dup: w => `Déjà essayé : ${w}.`, unknown: w => `« ${w} » n'est pas un mot connu. Cet essai ne compte pas.`,
     invalid: "Entrez un seul mot.", nothing: w => `Rien de proche pour « ${w} ».`, expired: "Cette partie a expiré. Lancez une nouvelle page.", net: "Le serveur ne répond pas. Vérifiez qu'il tourne toujours.",
-    hit: (w, n) => `${w} : ${n} mot${n > 1 ? "s" : ""} révélé${n > 1 ? "s" : ""}.`, near: (w, n) => `${w} : proche de ${n} mot${n > 1 ? "s" : ""}.`,
+    hit: (w, n) => `${w} : ${n} mot${n > 1 ? "s" : ""} révélé${n > 1 ? "s" : ""}.`,
+    near: (w, n, up) => `${w} : proche de ${n} mot${n > 1 ? "s" : ""} (${up ? `${up} amélioré${up > 1 ? "s" : ""}` : "aucun amélioré"}).`,
     won: n => `Trouvé en ${n} essai${n > 1 ? "s" : ""} !`, lost: n => `Abandon après ${n} essai${n > 1 ? "s" : ""}.`, read: "Lire la page sur Wikipédia", credit: "Texte : Wikipédia, licence CC BY-SA.",
     letters: n => `${n}`, wordLabel: "Mot",
   },
   en: {
-    team: "Play together", teamHint: "Share this code: your friends play the same page, and every word found shows up for everyone.", joinHint: "A friend's code", joinSend: "Join", noCode: "That code doesn't match any game. Check it with your friend.", others: n => `${n} new guess${n > 1 ? "es" : ""} from another player.`, share: "Copy link", copied: "Link copied. Open it anywhere to continue this game.", gone: "This game wasn't found. Here's a new page.", famous: "Very famous pages", wide: "Well-known pages", deep: "100,000 pages (hard)", next: "New page", giveup: "Give up", sure: "Confirm giving up",
+    easy: "Easy mode: see the % when clicking a bar", far: "far", close: "close", percent: n => `${n}%`, closeLabel: (n, word) => `"${word}" is ${n}% close`, team: "Play together", teamHint: "Share this code: your friends play the same page, and every word found shows up for everyone.", joinHint: "A friend's code", joinSend: "Join", noCode: "That code doesn't match any game. Check it with your friend.", others: n => `${n} new guess${n > 1 ? "es" : ""} from another player.`, share: "Copy link", copied: "Link copied. Open it anywhere to continue this game.", gone: "This game wasn't found. Here's a new page.", famous: "Very famous pages", wide: "Well-known pages", deep: "100,000 pages (hard)", next: "New page", giveup: "Give up", sure: "Confirm giving up",
     send: "Try", placeholder: "One word, in any form", count: "Guesses", legend: "Colours", log: "Your guesses",
     same: "Same word, in any form", family: "Direct link (monkey → primate)", scene: "Same area (rain → cloud)", none: "No link found",
     loading: "Picking a page…", noPage: "Wikipedia didn't return a page. Wait a moment, then click New page.", dup: w => `Already tried: ${w}.`, unknown: w => `"${w}" isn't a known word. This guess doesn't count.`,
     invalid: "Enter a single word.", nothing: w => `Nothing close to "${w}".`, expired: "This game expired. Start a new page.", net: "The server isn't responding. Check that it's still running.",
-    hit: (w, n) => `${w}: ${n} word${n > 1 ? "s" : ""} revealed.`, near: (w, n) => `${w}: close to ${n} word${n > 1 ? "s" : ""}.`,
+    hit: (w, n) => `${w}: ${n} word${n > 1 ? "s" : ""} revealed.`,
+    near: (w, n, up) => `${w}: close to ${n} word${n > 1 ? "s" : ""} (${up || "none"} improved).`,
     won: n => `Solved in ${n} guess${n > 1 ? "es" : ""}!`, lost: n => `Gave up after ${n} guess${n > 1 ? "es" : ""}.`, read: "Read the page on Wikipedia", credit: "Text: Wikipedia, CC BY-SA licence.",
     letters: n => `${n}`, wordLabel: "Word",
   },
@@ -163,6 +173,7 @@ const store = {
 };
 
 let game = null, lang = store.get("cav-lang", "fr"), level = store.get("cav-level", "famous");
+let easy = store.get("cav-easy", "") === "1";
 let queue = [], busy = false, confirming = false, countsShown = new Set(), known = new Set();
 const t = () => COPY[lang];
 
@@ -184,6 +195,10 @@ function paintCopy() {
   $("word").setAttribute("aria-label", c.wordLabel);
   $("countLabel").textContent = c.count;
   $("legendLabel").textContent = c.legend;
+  $("easyLabel").textContent = c.easy;
+  $("easy").checked = easy;
+  $("rampFar").textContent = c.far;
+  $("rampClose").textContent = c.close;
   $("logLabel").textContent = c.log;
   $("legend").replaceChildren(...["same", "family", "scene", "none"].map(k => row(k, c[k])));
 }
@@ -221,8 +236,16 @@ function makeSlot(token) {
   slot.className = "slot" + (token.tier ? ` ${token.tier}` : "");
   slot.style.minWidth = `${Math.max(token.length, 1) * 0.6}em`;
   const shown = countsShown.has(token.i);
+  const percent = token.near && easy ? Math.round(token.shade * 100) : null;
+  if (token.near) {
+    slot.style.setProperty("--shade", token.shade);
+    if (token.shade >= 0.45) slot.classList.add("bright");
+    if (percent !== null) slot.title = t().closeLabel(percent, token.near);
+  }
   if (shown) slot.classList.add("count");
-  slot.textContent = shown ? t().letters(token.length) : (token.near || " ");
+  slot.textContent = shown
+    ? (percent !== null ? `${t().letters(token.length)} · ${t().percent(percent)}` : t().letters(token.length))
+    : (token.near || " ");
   slot.addEventListener("click", () => {
     if (countsShown.has(token.i)) countsShown.delete(token.i); else countsShown.add(token.i);
     render();
@@ -411,9 +434,10 @@ async function drain() {
     else if (!answer.error) {
       game = answer.state;
       markFresh(game);
-      if (answer.hits) say(c.hit(answer.word, answer.hits));
-      else if (answer.near) say(c.near(answer.word, answer.near));
-      else say(c.nothing(answer.word));
+      const parts = [];
+      if (answer.hits) parts.push(c.hit(answer.word, answer.hits));
+      if (answer.matches) parts.push(c.near(answer.word, answer.matches, answer.near));
+      say(parts.join(" ") || c.nothing(answer.word));
       render();
     }
   }
@@ -430,6 +454,11 @@ $("entry").addEventListener("submit", event => {
   drain();
 });
 $("next").addEventListener("click", newGame);
+$("easy").addEventListener("change", () => {
+  easy = $("easy").checked;
+  store.set("cav-easy", easy ? "1" : "");
+  render();
+});
 $("join").addEventListener("submit", async event => {
   event.preventDefault();
   const code = $("joinCode").value.toLowerCase().replace(/[^0-9a-f]/g, "");

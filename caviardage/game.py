@@ -5,6 +5,20 @@ from . import text
 
 MAX_WORD_LENGTH = 40
 TIER_RANK = {"same": 3, "family": 2, "scene": 1}
+FAMILY_FROM = 0.40  # Word scores where a family link usually starts, and where it stops mattering.
+FAMILY_TO = 0.80
+
+
+def _shade(tier, closeness):
+    """How close to show a guess, from 0.12 to 1. A family link is always shown closer than a scene one."""
+    closeness = min(1.0, max(0.0, closeness))
+    return round(0.55 + 0.45 * closeness if tier == "family" else 0.12 + 0.43 * closeness, 2)
+
+
+def _word_shade(tier, score):
+    if tier == "family":
+        return _shade(tier, (score - FAMILY_FROM) / (FAMILY_TO - FAMILY_FROM))
+    return _shade(tier, score / FAMILY_FROM)
 
 
 class Game:
@@ -50,7 +64,7 @@ class Game:
     def _add(self, token, part):
         token = {**token, "part": part, "i": len(self.tokens)}
         if token["word"]:
-            token.update(revealed=False, near=None, near_rank=0, near_score=-1.0)
+            token.update(revealed=False, near=None, near_rank=0, near_score=-1.0, shade=None)
             if part == "title":
                 self.title_slots.append(token)
         self.tokens.append(token)
@@ -65,7 +79,7 @@ class Game:
             else:
                 out.append({
                     "i": token["i"], "word": True, "length": len(token["text"]), "part": token["part"],
-                    "near": token["near"], "tier": _tier_name(token["near_rank"]),
+                    "near": token["near"], "tier": _tier_name(token["near_rank"]), "shade": token["shade"],
                 })
         return out
 
@@ -111,7 +125,7 @@ class Game:
             token["revealed"] = True
 
         best = "same" if same else None
-        near_hits = 0
+        near_hits = matches = 0
         if number is not None:
             for token in self.words:
                 if token["revealed"] or token["number"] is None or token["number"][0] != number[0]:
@@ -122,8 +136,9 @@ class Game:
                 rank = TIER_RANK[tier]
                 if best is None or rank > TIER_RANK[best]:
                     best = tier
+                matches += 1
                 if (rank, score) > (token["near_rank"], token["near_score"]):
-                    token.update(near=word, near_rank=rank, near_score=score)
+                    token.update(near=word, near_rank=rank, near_score=score, shade=_shade(tier, score))
                     near_hits += 1
         elif not text.is_stopword(word, self.lang):
             for target in self.targets:
@@ -136,14 +151,15 @@ class Game:
                 for token in self.words:
                     if token["revealed"] or token["text"].lower() != target:
                         continue
+                    matches += 1
                     if (rank, score) > (token["near_rank"], token["near_score"]):
-                        token.update(near=word, near_rank=rank, near_score=score)
+                        token.update(near=word, near_rank=rank, near_score=score, shade=_word_shade(tier, score))
                         near_hits += 1
 
         self.guesses[text.fold(word)] = {"word": word, "tier": best, "hits": len(same)}
         if self.title_slots and all(t["revealed"] for t in self.title_slots):
             self.finished = True
-        return {"word": word, "tier": best, "hits": len(same), "near": near_hits, "state": self.state()}
+        return {"word": word, "tier": best, "hits": len(same), "near": near_hits, "matches": matches, "state": self.state()}
 
     def _known(self, word):
         return text.is_real_word(word, self.lang) or self.closeness.in_vocabulary(word, self.lang)

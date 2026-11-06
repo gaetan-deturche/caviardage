@@ -175,10 +175,11 @@ def number_value(word, lang, guess=False):
 def number_tier(a, b):
     """Tier and score of number a against number b, of the same kind. The closer, the higher."""
     distance, size = abs(a - b), max(abs(a), abs(b))
-    score = 1 / (1 + distance)
+    limit = max(2, size * 0.10)
+    score = 1 - distance / (limit + 1)
     if distance <= max(1, size * 0.01):
         return "family", score
-    if distance <= max(2, size * 0.10):
+    if distance <= limit:
         return "scene", score
     return None, 0.0
 
