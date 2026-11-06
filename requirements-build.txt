@@ -1,0 +1,5 @@
+-r requirements.txt
+simplemma==2.0.0
+nltk==3.10.4
+wordfreq
+h5py

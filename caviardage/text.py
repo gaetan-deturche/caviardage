@@ -9,10 +9,8 @@ import itertools
 import re
 import unicodedata
 
-import simplemma
-from wordfreq import zipf_frequency
+from . import store
 
-COMMON_ZIPF = 5.7  # 5.7 means about 500 uses per million words.
 WORD_RE = re.compile(r"[^\W_]+", re.UNICODE)
 
 # French elided forms keep their full word's identity: guessing "de" reveals d'.
@@ -58,7 +56,7 @@ def fold(word):
 
 
 def _known(word, lang):
-    return bool(simplemma.is_known(word, lang=lang))
+    return store.lemma(lang, word) is not None
 
 
 def _accent_variants(word, lang):
@@ -81,7 +79,7 @@ def _accent_variants(word, lang):
     return found
 
 
-@functools.lru_cache(maxsize=200_000)
+@functools.lru_cache(maxsize=4000)
 def lemmas(word, lang):
     """Every base form a word could have, most likely first."""
     lower = word.lower()
@@ -89,13 +87,13 @@ def lemmas(word, lang):
     spellings = [lower] + _accent_variants(lower, lang)
     found = []
     for spelling in spellings:
-        for lemma in AMBIGUOUS.get(lang, {}).get(spelling, []) + [simplemma.lemmatize(spelling, lang=lang).lower()]:
+        for lemma in AMBIGUOUS.get(lang, {}).get(spelling, []) + [store.lemma(lang, spelling) or spelling]:
             if lemma not in found:
                 found.append(lemma)
     return tuple(found)
 
 
-@functools.lru_cache(maxsize=200_000)
+@functools.lru_cache(maxsize=4000)
 def keys(word, lang):
     """The matching keys of a word."""
     lower = word.lower()
@@ -117,14 +115,14 @@ def is_real_word(word, lang):
     return _known(word.lower(), lang) or bool(_accent_variants(word.lower(), lang))
 
 
-@functools.lru_cache(maxsize=200_000)
+@functools.lru_cache(maxsize=4000)
 def is_stopword(word, lang):
     """Words too common to be related to anything: peut, alors, celle. Real topics like guerre stay."""
     stops = STOPWORDS[lang]
     lower = word.lower()
     if lower in stops or len(lower) < 3 or any(lemma in stops for lemma in lemmas(word, lang)):
         return True
-    return zipf_frequency(lower, lang) >= COMMON_ZIPF
+    return store.is_common(lang, lower)
 
 
 def tokenize(text):

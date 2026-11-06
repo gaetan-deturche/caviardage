@@ -3,9 +3,6 @@ from caviardage.game import Game
 
 
 class FakeCloseness:
-    def prepare(self, words):
-        pass
-
     def in_vocabulary(self, word, lang):
         return word != "zzzq"
 

@@ -9,7 +9,7 @@ from caviardage.game import Game
 
 PORT = 5180
 STATIC = Path(__file__).resolve().parent / "static"
-MAX_GAMES = 50
+MAX_GAMES = 20
 
 app = Flask(__name__)
 closeness = Closeness()

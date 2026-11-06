@@ -4,20 +4,19 @@ A background worker keeps a few pages ready for each language and level, so
 "New page" doesn't wait on Wikipedia.
 """
 import collections
-import json
 import random
 import re
 import threading
 import time
-from pathlib import Path
 
 import requests
 
-ROOT = Path(__file__).resolve().parent.parent
+from . import store
+
 HEADERS = {"User-Agent": "Caviardage/0.1 (https://github.com/gaetan-deturche/caviardage) python-requests"}
 MIN_WORDS = 80
 MAX_WORDS = 400
-READY_PAGES = 3
+READY_PAGES = 2
 LIVE_DEADLINE = 8  # Seconds a player can be kept waiting when no page is ready.
 WORKER_PAUSE = 1  # Seconds between the worker's requests, to respect Wikipedia's limits.
 
@@ -30,10 +29,6 @@ class RateLimited(Exception):
     def __init__(self, wait):
         super().__init__(f"Wikipedia asked to wait {wait}s")
         self.wait = wait
-
-
-def _load_pool():
-    return json.loads((ROOT / "data" / "pool.json").read_text(encoding="utf-8"))
 
 
 def _clean(extract):
@@ -95,7 +90,6 @@ def _to_article(page):
 
 class Articles:
     def __init__(self, start_worker=True):
-        self.pool = _load_pool()
         self.used = set()
         self.ready = collections.defaultdict(collections.deque)
         self.wanted = {("fr", "famous"), ("en", "famous")}
@@ -105,9 +99,12 @@ class Articles:
             threading.Thread(target=self._keep_ready, daemon=True).start()
 
     def _pick_title(self, lang, level):
+        size = store.pool_size(lang, level)
         with self.lock:
-            fresh = [t for t in self.pool[lang][level] if (lang, t) not in self.used] or self.pool[lang][level]
-            title = random.choice(fresh)
+            for _ in range(200):
+                title = store.pool_title(lang, level, random.randrange(size))
+                if (lang, title) not in self.used:
+                    break
             self.used.add((lang, title))
             return title
 

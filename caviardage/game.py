@@ -29,7 +29,6 @@ class Game:
 
         self.words = [t for t in self.tokens if t["word"]]
         self.targets = {t["text"].lower() for t in self.words if not text.is_stopword(t["text"], lang)}
-        closeness.prepare(self.targets)
 
     def _add(self, token, part):
         token = {**token, "part": part, "i": len(self.tokens)}
@@ -90,7 +89,6 @@ class Game:
         best = "same" if same else None
         near_hits = 0
         if not text.is_stopword(word, self.lang):
-            self.closeness.prepare([word])
             for target in self.targets:
                 tier, score = self.closeness.tier(word, target, self.lang)
                 if not tier:
