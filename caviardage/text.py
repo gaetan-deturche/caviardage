@@ -12,6 +12,8 @@ import unicodedata
 from . import store
 
 WORD_RE = re.compile(r"[^\W_]+", re.UNICODE)
+WORD_BREAK = "\u200b"  # Invisible. Marks a superscript or subscript edge, as in CO2 and XXe.
+SCRIPT_CHARACTERS_RE = re.compile(r"([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻₀₁₂₃₄₅₆₇₈₉₊₋ᵉʳᵈˢᵗʰⁿ]+)")
 
 # French elided forms keep their full word's identity: guessing "de" reveals d'.
 ELISIONS = {"l": "le", "d": "de", "j": "je", "n": "ne", "s": "se", "c": "ce", "m": "me", "t": "te", "qu": "que"}
@@ -217,7 +219,7 @@ def other_name(title, first_paragraph, lang):
     "Les mollusques (Mollusca) sont..." gives ["mollusques"] for the title Mollusca.
     Returns the words of that name, or [] when the article doesn't open this way.
     """
-    match = LEAD_NAME_RE.match(first_paragraph)
+    match = LEAD_NAME_RE.match(first_paragraph.replace(WORD_BREAK, ""))
     if not match:
         return []
     position = fold(match.group(2)).find(fold(title))
@@ -264,8 +266,10 @@ def tokenize(text):
     for match in WORD_RE.finditer(text):
         if match.start() > position:
             tokens.append({"word": False, "text": text[position:match.start()]})
-        for part in split_ordinal(match.group()) or (match.group(),):
-            tokens.append({"word": True, "text": part})
+        for piece in SCRIPT_CHARACTERS_RE.split(match.group()):
+            if piece:
+                for part in split_ordinal(piece) or (piece,):
+                    tokens.append({"word": True, "text": part})
         position = match.end()
     if position < len(text):
         tokens.append({"word": False, "text": text[position:]})

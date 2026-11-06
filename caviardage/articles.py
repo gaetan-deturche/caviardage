@@ -8,10 +8,11 @@ import random
 import re
 import threading
 import time
+from html.parser import HTMLParser
 
 import requests
 
-from . import store
+from . import store, text
 
 HEADERS = {"User-Agent": "Caviardage/0.1 (https://github.com/gaetan-deturche/caviardage) python-requests"}
 MIN_WORDS = 80
@@ -29,6 +30,45 @@ class RateLimited(Exception):
     def __init__(self, wait):
         super().__init__(f"Wikipedia asked to wait {wait}s")
         self.wait = wait
+
+
+class _ArticleText(HTMLParser):
+    """Plain text from Wikipedia's formatted extract, with superscripts and subscripts marked."""
+
+    BLOCKS = {"p", "div", "li", "ul", "ol", "dl", "dd", "dt", "blockquote", "br", "h1", "h2", "h3", "h4", "h5", "h6", "table", "tr"}
+    SKIPPED = {"style", "script", "math"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.parts = []
+        self.skipping = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self.SKIPPED:
+            self.skipping += 1
+        elif tag in ("sup", "sub"):
+            self.parts.append(text.WORD_BREAK)
+        elif tag in self.BLOCKS:
+            self.parts.append("\n")
+
+    def handle_endtag(self, tag):
+        if tag in self.SKIPPED:
+            self.skipping = max(0, self.skipping - 1)
+        elif tag in ("sup", "sub"):
+            self.parts.append(text.WORD_BREAK)
+        elif tag in self.BLOCKS:
+            self.parts.append("\n")
+
+    def handle_data(self, data):
+        if not self.skipping:
+            self.parts.append(data.replace("\n", " "))
+
+
+def _plain_text(extract):
+    parser = _ArticleText()
+    parser.feed(extract)
+    parser.close()
+    return "".join(parser.parts)
 
 
 def _clean(extract):
@@ -65,7 +105,7 @@ def _fetch(title, lang):
         timeout=6,
         params={
             "action": "query", "format": "json", "formatversion": 2, "redirects": 1, "titles": title,
-            "prop": "extracts|info|pageprops", "inprop": "url", "explaintext": 1, "exintro": 1,
+            "prop": "extracts|info|pageprops", "inprop": "url", "exintro": 1,
         },
     )
     if response.status_code == 429:
@@ -78,7 +118,7 @@ def _to_article(page):
     """The article for a fetched page, or None if it can't be played."""
     if page.get("missing") or "disambiguation" in page.get("pageprops", {}):
         return None
-    paragraphs, words = _trim(_clean(page.get("extract", "")))
+    paragraphs, words = _trim(_clean(_plain_text(page.get("extract", ""))))
     if words < MIN_WORDS:
         return None
     return {
