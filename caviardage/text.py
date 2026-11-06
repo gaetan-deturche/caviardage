@@ -235,13 +235,40 @@ def other_name(title, first_paragraph, lang):
     return words
 
 
+NUMBER_THEN_ENDING_RE = re.compile(r"(\d{1,15}|[IVXLCDM]+)(er|re|ère|ème|eme|es|e|ᵉʳ|ʳᵉ|ᵉ|st|nd|rd|th)")
+
+
+def split_ordinal(word):
+    """(7, th) for 7th and (XIX, e) for XIXe, where the ending is really a superscript.
+
+    Returns None for anything else: Les and Ces are words, not Roman numerals with an ending.
+    """
+    match = NUMBER_THEN_ENDING_RE.fullmatch(word)
+    if not match:
+        return None
+    number = match.group(1)
+    if not number.isdigit() and _roman(number, "fr") is None:
+        return None
+    return number, match.group(2)
+
+
+def ordinal_ending(word):
+    """The ending of a guessed number, in any case: th for 7TH, e for xixe."""
+    match = NUMBER_THEN_ENDING_RE.fullmatch(word.lower().replace("i", "I").replace("v", "V").replace("x", "X"))
+    if match:
+        return match.group(2).lower()
+    match = re.fullmatch(r"(?:\d{1,15}|[ivxlcdm]+)(er|re|ère|ème|eme|es|e|ᵉʳ|ʳᵉ|ᵉ|st|nd|rd|th)", word.lower())
+    return match.group(1) if match else None
+
+
 def tokenize(text):
     """Split text into [{"word": bool, "text": str}], keeping everything else as is."""
     tokens, position = [], 0
     for match in WORD_RE.finditer(text):
         if match.start() > position:
             tokens.append({"word": False, "text": text[position:match.start()]})
-        tokens.append({"word": True, "text": match.group()})
+        for part in split_ordinal(match.group()) or (match.group(),):
+            tokens.append({"word": True, "text": part})
         position = match.end()
     if position < len(text):
         tokens.append({"word": False, "text": text[position:]})

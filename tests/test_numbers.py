@@ -91,8 +91,8 @@ def test_roman_and_digits_never_match_each_other():
 
 
 def test_same_kind_reveals_every_form():
-    assert "XIXe" in shown(game().guess("xix")["state"])
-    assert "XIXe" in shown(game().guess("XIXe")["state"])
+    assert "XIX" in shown(game().guess("xix")["state"])
+    assert "XIX" in shown(game().guess("XIXe")["state"])
     assert "1883" in shown(game().guess("1883")["state"])
 
 

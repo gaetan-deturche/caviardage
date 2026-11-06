@@ -117,11 +117,13 @@ class Game:
             return {"error": "duplicate", "word": word}
 
         number = text.number_value(word, self.lang, guess=True)
+        ending = text.ordinal_ending(word) if number is not None else None
         same = [
             t for t in self.words
             if t["text"].lower() == word.lower()
             or guess_keys & text.keys(t["text"], self.lang)
             or (number is not None and t["number"] == number)
+            or (ending and t["text"].lower() == ending)  # Guessing 7th also finds the th.
         ]
         if not same and number is None and not self._known(word):
             return {"error": "unknown", "word": word}
