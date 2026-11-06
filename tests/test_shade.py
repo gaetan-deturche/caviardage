@@ -1,4 +1,4 @@
-"""The closer the guess, the whiter the bar, and the message counts every match."""
+"""The closer the guess, the whiter its text, and the message counts every match."""
 import pytest
 
 from caviardage.game import Game, _shade, _word_shade

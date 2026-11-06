@@ -10,7 +10,7 @@
 /* A censor's dossier: cool file-folder paper, inked bars, typed headings. */
 :root {
   --desk: #c9d2d6; --paper: #f1f4f3; --ink: #1d2a33; --muted: #566670; --line: #b7c3c8;
-  --bar: #24333d; --bar-text: #f1f4f3;
+  --bar: #141c22; --bar-text: #f1f4f3;
   --same: #1f7a4d; --same-bg: #d5ecdf;
   --family: #b4540f; --family-bg: #f8dcc2; --family-text: #6e3105;
   --scene: #8f7600; --scene-bg: #f5ecb0; --scene-text: #554600;
@@ -22,7 +22,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --desk: #11181d; --paper: #1b252c; --ink: #e2e9ea; --muted: #9aaab2; --line: #33434d;
-    --bar: #4a5c67; --bar-text: #f1f4f3;
+    --bar: #070b0e; --bar-text: #f1f4f3;
     --same: #63c994; --same-bg: #173c2a;
     --family: #f0a062; --family-bg: #4d2a10; --family-text: #fbd7b8;
     --scene: #dcc54b; --scene-bg: #423a0b; --scene-text: #f1e596;
@@ -59,12 +59,12 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
 #text p { margin: 0 0 16px; max-width: 72ch; overflow-wrap: anywhere; }
 
 .slot { display: inline-block; font: inherit; line-height: 1.2; vertical-align: baseline; border-radius: 2px; background: var(--bar); color: var(--bar-text); padding: 0 3px; margin: 0 1px; cursor: pointer; border: 0; text-align: center; }
-/* The closer a guess, the whiter its bar. The underline shows which kind of link it is. */
-.slot.family, .slot.scene { background: color-mix(in srgb, #fff calc(var(--shade) * 100%), var(--bar)); color: var(--bar-text); font-style: italic; outline: 1px solid var(--line); outline-offset: -1px; }
+/* Bars stay black. The closer a guess, the whiter its text. The underline shows which kind of link it is. */
+.slot.family, .slot.scene { color: color-mix(in srgb, #fff calc(var(--shade) * 100%), #5c6a73); font-style: italic; }
 .slot.family { box-shadow: inset 0 -3px 0 var(--family-line); }
 .slot.scene { box-shadow: inset 0 -3px 0 var(--scene-line); }
-.slot.bright { color: #1d2a33; }
-.ramp { height: 10px; border-radius: 2px; margin-top: 8px; background: linear-gradient(90deg, var(--bar), #fff); outline: 1px solid var(--line); outline-offset: -1px; }
+.ramp { margin-top: 8px; padding: 3px 6px; border-radius: 2px; background: var(--bar); font: italic 400 15px/1.2 var(--body); display: flex; justify-content: space-between; }
+.ramp span { flex: 1; text-align: center; }
 .easy { display: flex; gap: 6px; align-items: center; margin-top: 10px; cursor: pointer; }
 .ramp-labels { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; margin-top: 2px; }
 .slot.count { font: 600 .8em/1.55 var(--ui); }
@@ -134,7 +134,7 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
         </form>
       </section>
       <section class="card"><h2 id="legendLabel"></h2><ul class="legend" id="legend"></ul>
-        <div class="ramp"></div><div class="ramp-labels"><span id="rampFar"></span><span id="rampClose"></span></div>
+        <div class="ramp"><span style="color: #6d7a82" id="rampFar"></span><span style="color: #a3acb2">&middot;</span><span style="color: #fff" id="rampClose"></span></div>
         <label class="easy"><input type="checkbox" id="easy"> <span id="easyLabel"></span></label></section>
       <section class="card"><h2 id="logLabel"></h2><ul id="log"></ul></section>
     </aside>
@@ -239,7 +239,6 @@ function makeSlot(token) {
   const percent = token.near && easy ? Math.round(token.shade * 100) : null;
   if (token.near) {
     slot.style.setProperty("--shade", token.shade);
-    if (token.shade >= 0.45) slot.classList.add("bright");
     if (percent !== null) slot.title = t().closeLabel(percent, token.near);
   }
   if (shown) slot.classList.add("count");
