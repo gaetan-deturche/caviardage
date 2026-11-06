@@ -1,0 +1,118 @@
+"""One round: holds the hidden article and answers guesses. The browser never gets hidden text."""
+import uuid
+
+from . import text
+
+TIER_RANK = {"same": 3, "family": 2, "scene": 1}
+
+
+class Game:
+    def __init__(self, article, lang, closeness):
+        self.id = uuid.uuid4().hex
+        self.lang = lang
+        self.closeness = closeness
+        self.article = article
+        self.guesses = {}
+        self.tokens = []
+        self.finished = False
+        self.gave_up = False
+
+        self.title_slots = []
+        for token in text.tokenize(article["title"]):
+            self._add(token, "title")
+        self.tokens.append({"word": False, "text": "\n\n", "part": "break"})
+        for index, paragraph in enumerate(article["paragraphs"]):
+            if index:
+                self.tokens.append({"word": False, "text": "\n\n", "part": "break"})
+            for token in text.tokenize(paragraph):
+                self._add(token, "body")
+
+        self.words = [t for t in self.tokens if t["word"]]
+        self.targets = {t["text"].lower() for t in self.words if not text.is_stopword(t["text"], lang)}
+        closeness.prepare(self.targets)
+
+    def _add(self, token, part):
+        token = {**token, "part": part, "i": len(self.tokens)}
+        if token["word"]:
+            token.update(revealed=False, near=None, near_rank=0, near_score=-1.0)
+            if part == "title":
+                self.title_slots.append(token)
+        self.tokens.append(token)
+
+    def public_tokens(self):
+        out = []
+        for token in self.tokens:
+            if not token["word"]:
+                out.append({"i": token["i"] if "i" in token else None, "text": token["text"], "part": token["part"]})
+            elif token["revealed"] or self.finished:
+                out.append({"i": token["i"], "word": True, "text": token["text"], "part": token["part"], "revealed": True})
+            else:
+                out.append({
+                    "i": token["i"], "word": True, "length": len(token["text"]), "part": token["part"],
+                    "near": token["near"], "tier": _tier_name(token["near_rank"]),
+                })
+        return out
+
+    def _finish_payload(self):
+        return {"title": self.article["title"], "url": self.article["url"]}
+
+    def state(self):
+        payload = {
+            "id": self.id, "lang": self.lang, "tokens": self.public_tokens(), "count": len(self.guesses),
+            "finished": self.finished, "gaveUp": self.gave_up,
+        }
+        if self.finished:
+            payload["answer"] = self._finish_payload()
+        return payload
+
+    def give_up(self):
+        self.finished = True
+        self.gave_up = True
+        return self.state()
+
+    def guess(self, raw):
+        word = raw.strip()
+        if not word or not text.WORD_RE.fullmatch(word):
+            return {"error": "invalid"}
+        if self.finished:
+            return {"error": "finished"}
+        guess_keys = text.keys(word, self.lang)
+        if text.fold(word) in self.guesses:
+            return {"error": "duplicate", "word": word}
+
+        same = [t for t in self.words if t["text"].lower() == word.lower() or guess_keys & text.keys(t["text"], self.lang)]
+        if not same and not self._known(word):
+            return {"error": "unknown", "word": word}
+
+        for token in same:
+            token["revealed"] = True
+
+        best = "same" if same else None
+        near_hits = 0
+        if not text.is_stopword(word, self.lang):
+            self.closeness.prepare([word])
+            for target in self.targets:
+                tier, score = self.closeness.tier(word, target, self.lang)
+                if not tier:
+                    continue
+                if best is None or TIER_RANK[tier] > TIER_RANK[best]:
+                    best = tier
+                rank = TIER_RANK[tier]
+                for token in self.words:
+                    if token["revealed"] or token["text"].lower() != target:
+                        continue
+                    if (rank, score) > (token["near_rank"], token["near_score"]):
+                        token.update(near=word, near_rank=rank, near_score=score)
+                        near_hits += 1
+
+        self.guesses[text.fold(word)] = {"word": word, "tier": best, "hits": len(same)}
+        if self.title_slots and all(t["revealed"] for t in self.title_slots):
+            self.finished = True
+        return {"word": word, "tier": best, "hits": len(same), "near": near_hits, "state": self.state()}
+
+    def _known(self, word):
+        return text.is_real_word(word, self.lang) or self.closeness.in_vocabulary(word, self.lang)
+
+
+def _tier_name(rank):
+    return {2: "family", 1: "scene"}.get(rank)

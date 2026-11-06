@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Caviardage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Barlow+Semi+Condensed:wght@500;600&display=swap">
+<style>
+/* A censor's dossier: cool file-folder paper, inked bars, typed headings. */
+:root {
+  --desk: #c9d2d6; --paper: #f1f4f3; --ink: #1d2a33; --muted: #566670; --line: #b7c3c8;
+  --bar: #24333d; --bar-text: #f1f4f3;
+  --same: #1f7a4d; --same-bg: #d5ecdf;
+  --family: #b4540f; --family-bg: #f8dcc2; --family-text: #6e3105;
+  --scene: #8f7600; --scene-bg: #f5ecb0; --scene-text: #554600;
+  --stamp: #a32638;
+  --type: "Special Elite", "Courier New", monospace;
+  --body: "Source Serif 4", Georgia, serif;
+  --ui: "Barlow Semi Condensed", "Arial Narrow", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --desk: #11181d; --paper: #1b252c; --ink: #e2e9ea; --muted: #9aaab2; --line: #33434d;
+    --bar: #4a5c67; --bar-text: #f1f4f3;
+    --same: #63c994; --same-bg: #173c2a;
+    --family: #f0a062; --family-bg: #4d2a10; --family-text: #fbd7b8;
+    --scene: #dcc54b; --scene-bg: #423a0b; --scene-text: #f1e596;
+    --stamp: #e86a7d;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--desk); color: var(--ink); font: 400 18px/1.75 var(--body); padding-block: 20px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+button, input, select { font: 600 16px/1.2 var(--ui); color: inherit; }
+:focus-visible { outline: 3px solid var(--family); outline-offset: 2px; }
+
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 16px; }
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+.brand { font: 400 30px/1 var(--type); margin: 0; letter-spacing: .01em; }
+.brand s { text-decoration: none; background: var(--ink); color: transparent; border-radius: 2px; padding: 0 2px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; align-items: center; }
+select, .btn { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 8px 12px; cursor: pointer; }
+.btn:hover { border-color: var(--ink); }
+.btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn:disabled { opacity: .55; cursor: default; }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; align-items: start; }
+@media (max-width: 840px) { .layout { grid-template-columns: minmax(0, 1fr); } .side { position: static !important; max-height: none !important; } }
+
+.sheet { background: var(--paper); border: 1px solid var(--line); border-radius: 3px; padding: 24px clamp(16px, 4vw, 44px) 36px; min-width: 0; }
+.entry { position: sticky; top: 8px; z-index: 2; display: flex; gap: 8px; margin-bottom: 20px; background: var(--paper); padding-block: 8px; }
+#word { flex: 1; min-width: 0; font: 400 20px/1.2 var(--type); background: transparent; border: 0; border-bottom: 2px solid var(--ink); padding: 8px 4px; }
+.msg { min-height: 24px; margin: -12px 0 12px; font: 500 15px/1.5 var(--ui); color: var(--muted); }
+.msg.bad { color: var(--stamp); }
+
+#title { font: 400 clamp(25px, 4vw, 36px)/1.45 var(--type); margin: 0 0 18px; padding-bottom: 12px; border-bottom: 1px dashed var(--line); text-wrap: balance; }
+#text p { margin: 0 0 16px; max-width: 72ch; overflow-wrap: anywhere; }
+
+.slot { display: inline-block; font: inherit; line-height: 1.2; vertical-align: baseline; border-radius: 2px; background: var(--bar); color: var(--bar-text); padding: 0 3px; margin: 0 1px; cursor: pointer; border: 0; text-align: center; }
+.slot.family { background: var(--family-bg); color: var(--family-text); box-shadow: inset 0 -2px 0 var(--family); font-style: italic; }
+.slot.scene { background: var(--scene-bg); color: var(--scene-text); box-shadow: inset 0 -2px 0 var(--scene); font-style: italic; }
+.slot.count { font: 600 .8em/1.55 var(--ui); }
+.shown.fresh { background: var(--same-bg); color: var(--same); font-weight: 600; border-radius: 2px; box-shadow: 0 0 0 1px var(--same-bg); }
+.gaveup .shown { color: var(--ink); }
+
+.side { position: sticky; top: 16px; display: grid; gap: 16px; max-height: calc(100vh - 32px); overflow: auto; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 3px; padding: 14px 16px; font-family: var(--ui); font-size: 15px; line-height: 1.4; }
+.card h2 { margin: 0 0 8px; font: 600 13px/1.2 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.big { font: 400 40px/1 var(--type); font-variant-numeric: tabular-nums; }
+.legend { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.legend li, #log li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.dot { width: 12px; height: 12px; border-radius: 2px; background: var(--line); }
+.dot.same { background: var(--same); } .dot.family { background: var(--family); } .dot.scene { background: var(--scene); }
+#log { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+#log .w { overflow-wrap: anywhere; font-weight: 500; }
+#log .n { color: var(--muted); font-variant-numeric: tabular-nums; }
+.result { border: 2px solid var(--same); border-radius: 3px; padding: 16px 18px; margin-bottom: 20px; font-family: var(--ui); line-height: 1.45; }
+.result.lost { border-color: var(--stamp); }
+.result strong { display: block; font: 400 25px/1.25 var(--type); margin-bottom: 4px; }
+.result a { color: inherit; }
+.credit { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+.loading { color: var(--muted); font-family: var(--ui); }
+@media (prefers-reduced-motion: no-preference) { .shown.fresh { transition: background .6s; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1 class="brand">Cavi<s>ar</s>dage</h1>
+    <div class="controls">
+      <label for="lang" hidden>Langue</label>
+      <select id="lang"><option value="fr">Français</option><option value="en">English</option></select>
+      <label for="level" hidden>Pages</label>
+      <select id="level"></select>
+      <button id="giveup" class="btn" type="button"></button>
+      <button id="next" class="btn primary" type="button"></button>
+    </div>
+  </header>
+  <div class="layout">
+    <main class="sheet">
+      <form id="entry" class="entry" autocomplete="off">
+        <input id="word" autocapitalize="off" spellcheck="false" aria-label="Mot">
+        <button class="btn primary" id="send" type="submit"></button>
+      </form>
+      <p id="msg" class="msg" role="status"></p>
+      <div id="result" hidden></div>
+      <h2 id="title"></h2>
+      <div id="text"><p class="loading" id="loading"></p></div>
+    </main>
+    <aside class="side">
+      <section class="card"><h2 id="countLabel"></h2><div class="big" id="count">0</div></section>
+      <section class="card"><h2 id="legendLabel"></h2><ul class="legend" id="legend"></ul></section>
+      <section class="card"><h2 id="logLabel"></h2><ul id="log"></ul></section>
+    </aside>
+  </div>
+</div>
+<script>
+const COPY = {
+  fr: {
+    famous: "Pages très connues", wide: "Toutes les pages connues", next: "Nouvelle page", giveup: "Abandonner", sure: "Confirmer l'abandon",
+    send: "Essayer", placeholder: "Un mot, sous n'importe quelle forme", count: "Essais", legend: "Couleurs", log: "Vos essais",
+    same: "Même mot, quelle que soit la forme", family: "Lien direct (singe → primate)", scene: "Même domaine (roi → château)", none: "Pas de lien trouvé",
+    loading: "Choix d'une page…", noPage: "Wikipédia n'a pas renvoyé de page. Attendez un instant, puis cliquez sur Nouvelle page.", dup: w => `Déjà essayé : ${w}.`, unknown: w => `« ${w} » n'est pas un mot connu. Cet essai ne compte pas.`,
+    invalid: "Entrez un seul mot.", nothing: w => `Rien de proche pour « ${w} ».`, expired: "Cette partie a expiré. Lancez une nouvelle page.", net: "Le serveur ne répond pas. Vérifiez qu'il tourne toujours.",
+    hit: (w, n) => `${w} : ${n} mot${n > 1 ? "s" : ""} révélé${n > 1 ? "s" : ""}.`, near: (w, n) => `${w} : proche de ${n} mot${n > 1 ? "s" : ""}.`,
+    won: n => `Trouvé en ${n} essai${n > 1 ? "s" : ""} !`, lost: n => `Abandon après ${n} essai${n > 1 ? "s" : ""}.`, read: "Lire la page sur Wikipédia", credit: "Texte : Wikipédia, licence CC BY-SA.",
+    letters: n => `${n}`, wordLabel: "Mot",
+  },
+  en: {
+    famous: "Very famous pages", wide: "All well-known pages", next: "New page", giveup: "Give up", sure: "Confirm giving up",
+    send: "Try", placeholder: "One word, in any form", count: "Guesses", legend: "Colours", log: "Your guesses",
+    same: "Same word, in any form", family: "Direct link (monkey → primate)", scene: "Same area (rain → cloud)", none: "No link found",
+    loading: "Picking a page…", noPage: "Wikipedia didn't return a page. Wait a moment, then click New page.", dup: w => `Already tried: ${w}.`, unknown: w => `"${w}" isn't a known word. This guess doesn't count.`,
+    invalid: "Enter a single word.", nothing: w => `Nothing close to "${w}".`, expired: "This game expired. Start a new page.", net: "The server isn't responding. Check that it's still running.",
+    hit: (w, n) => `${w}: ${n} word${n > 1 ? "s" : ""} revealed.`, near: (w, n) => `${w}: close to ${n} word${n > 1 ? "s" : ""}.`,
+    won: n => `Solved in ${n} guess${n > 1 ? "es" : ""}!`, lost: n => `Gave up after ${n} guess${n > 1 ? "es" : ""}.`, read: "Read the page on Wikipedia", credit: "Text: Wikipedia, CC BY-SA licence.",
+    letters: n => `${n}`, wordLabel: "Word",
+  },
+};
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(key, fallback) { try { return localStorage.getItem(key) || fallback; } catch { return fallback; } },
+  set(key, value) { try { localStorage.setItem(key, value); } catch { /* Settings just won't be remembered. */ } },
+};
+
+let game = null, lang = store.get("cav-lang", "fr"), level = store.get("cav-level", "famous");
+let log = [], queue = [], busy = false, confirming = false, countsShown = new Set(), known = new Set();
+const t = () => COPY[lang];
+
+function paintCopy() {
+  const c = t();
+  document.documentElement.lang = lang;
+  $("lang").value = lang;
+  $("level").replaceChildren(...["famous", "wide"].map(v => new Option(c[v], v)));
+  $("level").value = level;
+  $("next").textContent = c.next;
+  $("giveup").textContent = confirming ? c.sure : c.giveup;
+  $("send").textContent = c.send;
+  $("word").placeholder = c.placeholder;
+  $("word").setAttribute("aria-label", c.wordLabel);
+  $("countLabel").textContent = c.count;
+  $("legendLabel").textContent = c.legend;
+  $("logLabel").textContent = c.log;
+  $("legend").replaceChildren(...["same", "family", "scene", "none"].map(k => row(k, c[k])));
+}
+
+function row(tier, label, extra) {
+  const li = document.createElement("li");
+  const dot = document.createElement("span");
+  dot.className = `dot ${tier}`;
+  const name = document.createElement("span");
+  name.className = "w";
+  name.textContent = label;
+  li.append(dot, name);
+  if (extra !== undefined) {
+    const n = document.createElement("span");
+    n.className = "n";
+    n.textContent = extra;
+    li.append(n);
+  }
+  return li;
+}
+
+function say(text, bad) {
+  $("msg").textContent = text || "";
+  $("msg").classList.toggle("bad", !!bad);
+}
+
+async function post(path, body) {
+  const response = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  return response.json();
+}
+
+function makeSlot(token) {
+  const slot = document.createElement("button");
+  slot.type = "button";
+  slot.className = "slot" + (token.tier ? ` ${token.tier}` : "");
+  slot.style.minWidth = `${Math.max(token.length, 1) * 0.6}em`;
+  const shown = countsShown.has(token.i);
+  if (shown) slot.classList.add("count");
+  slot.textContent = shown ? t().letters(token.length) : (token.near || " ");
+  slot.addEventListener("click", () => {
+    if (countsShown.has(token.i)) countsShown.delete(token.i); else countsShown.add(token.i);
+    render();
+    $("word").focus();
+  });
+  return slot;
+}
+
+function appendTo(parent, token) {
+  if (!token.word) { parent.append(token.text); return; }
+  if (token.revealed) {
+    const span = document.createElement("span");
+    span.className = "shown" + (token.fresh ? " fresh" : "");
+    span.textContent = token.text;
+    parent.append(span);
+    return;
+  }
+  parent.append(makeSlot(token));
+}
+
+function render() {
+  if (!game) return;
+  const c = t();
+  const titleEl = $("title"), textEl = $("text");
+  titleEl.replaceChildren();
+  textEl.replaceChildren();
+  textEl.classList.toggle("gaveup", game.gaveUp);
+  let paragraph = document.createElement("p");
+  for (const token of game.tokens) {
+    if (token.part === "break") {
+      if (paragraph.childNodes.length) textEl.append(paragraph);
+      paragraph = document.createElement("p");
+    } else if (token.part === "title") {
+      appendTo(titleEl, token);
+    } else {
+      appendTo(paragraph, token);
+    }
+  }
+  if (paragraph.childNodes.length) textEl.append(paragraph);
+
+  $("count").textContent = game.count;
+  $("log").replaceChildren(...log.map(g => row(g.tier || "none", g.word, g.hits || "")));
+  $("word").disabled = $("send").disabled = $("giveup").disabled = game.finished;
+
+  const result = $("result");
+  result.hidden = !game.finished;
+  if (game.finished) {
+    result.className = "result" + (game.gaveUp ? " lost" : "");
+    const head = document.createElement("strong");
+    head.textContent = game.gaveUp ? c.lost(game.count) : c.won(game.count);
+    const name = document.createElement("div");
+    name.textContent = game.answer.title;
+    const link = document.createElement("a");
+    link.href = game.answer.url;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = c.read;
+    const credit = document.createElement("p");
+    credit.className = "credit";
+    credit.textContent = c.credit;
+    result.replaceChildren(head, name, link, credit);
+  }
+}
+
+function markFresh(state) {
+  for (const token of state.tokens) {
+    if (token.word && token.revealed) {
+      token.fresh = !known.has(token.i) && !state.gaveUp;
+      known.add(token.i);
+    }
+  }
+}
+
+async function newGame() {
+  game = null;
+  log = []; queue = []; busy = false; confirming = false; countsShown = new Set(); known = new Set();
+  paintCopy();
+  say("");
+  $("result").hidden = true;
+  $("title").replaceChildren();
+  const loading = document.createElement("p");
+  loading.className = "loading";
+  loading.textContent = t().loading;
+  $("text").replaceChildren(loading);
+  $("count").textContent = "0";
+  $("log").replaceChildren();
+  $("word").value = "";
+  $("word").disabled = $("send").disabled = $("giveup").disabled = true;
+  $("next").disabled = true;
+  try {
+    const state = await post("/api/new", { lang, level });
+    if (state.error) { say(t().noPage, true); $("text").replaceChildren(); return; }
+    game = state;
+    markFresh(game);
+    render();
+    $("word").focus();
+  } catch {
+    say(t().net, true);
+  } finally {
+    $("next").disabled = false;
+  }
+}
+
+async function drain() {
+  if (busy) return;
+  busy = true;
+  while (queue.length && game && !game.finished) {
+    const word = queue.shift();
+    const id = game.id;
+    let answer;
+    try {
+      answer = await post("/api/guess", { id, word });
+    } catch {
+      say(t().net, true);
+      break;
+    }
+    if (!game || game.id !== id) break;
+    const c = t();
+    if (answer.error === "duplicate") say(c.dup(answer.word));
+    else if (answer.error === "unknown") say(c.unknown(answer.word), true);
+    else if (answer.error === "invalid") say(c.invalid, true);
+    else if (answer.error === "expired") say(c.expired, true);
+    else if (!answer.error) {
+      game = answer.state;
+      markFresh(game);
+      log.unshift({ word: answer.word, tier: answer.tier, hits: answer.hits });
+      if (answer.hits) say(c.hit(answer.word, answer.hits));
+      else if (answer.near) say(c.near(answer.word, answer.near));
+      else say(c.nothing(answer.word));
+      render();
+    }
+  }
+  busy = false;
+  if (game && !game.finished) $("word").focus();
+}
+
+$("entry").addEventListener("submit", event => {
+  event.preventDefault();
+  const word = $("word").value.trim();
+  if (!word || !game || game.finished) return;
+  $("word").value = "";
+  queue.push(word);
+  drain();
+});
+$("next").addEventListener("click", newGame);
+$("lang").addEventListener("change", () => { lang = $("lang").value; store.set("cav-lang", lang); newGame(); });
+$("level").addEventListener("change", () => { level = $("level").value; store.set("cav-level", level); newGame(); });
+$("giveup").addEventListener("click", async () => {
+  if (!game || game.finished) return;
+  if (!confirming) { confirming = true; paintCopy(); return; }
+  confirming = false;
+  paintCopy();
+  try {
+    const state = await post("/api/giveup", { id: game.id });
+    if (state.error) { say(t().expired, true); return; }
+    game = state;
+    markFresh(game);
+    render();
+  } catch {
+    say(t().net, true);
+  }
+});
+
+paintCopy();
+newGame();
+</script>
+</body>
+</html>
