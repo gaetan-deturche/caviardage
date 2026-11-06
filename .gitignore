@@ -3,3 +3,4 @@
 __pycache__/
 data/numberbatch.npy
 data/numberbatch_vocab.json
+data/games.sqlite

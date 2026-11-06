@@ -9,6 +9,8 @@ WorkingDirectory=/opt/caviardage
 ExecStart=/opt/caviardage/.venv/bin/python app.py
 Environment=OPENBLAS_NUM_THREADS=1
 Environment=PYTHONUNBUFFERED=1
+Environment=CAVIARDAGE_SAVES=/var/lib/caviardage/games.sqlite
+StateDirectory=caviardage
 Restart=on-failure
 RestartSec=10
 MemoryMax=200M

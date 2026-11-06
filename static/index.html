@@ -68,6 +68,12 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
 .side { position: sticky; top: 16px; display: grid; gap: 16px; max-height: calc(100vh - 32px); overflow: auto; }
 .card { background: var(--paper); border: 1px solid var(--line); border-radius: 3px; padding: 14px 16px; font-family: var(--ui); font-size: 15px; line-height: 1.4; }
 .card h2 { margin: 0 0 8px; font: 600 13px/1.2 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.code { font: 400 26px/1.2 var(--type); letter-spacing: .04em; overflow-wrap: anywhere; }
+.hint { margin: 6px 0 10px; color: var(--muted); }
+.team .btn { width: 100%; }
+.join { display: flex; gap: 6px; margin-top: 8px; }
+.join input { flex: 1; min-width: 0; background: transparent; border: 1px solid var(--line); border-radius: 4px; padding: 8px; font-family: var(--type); }
+.join .btn { width: auto; }
 .big { font: 400 40px/1 var(--type); font-variant-numeric: tabular-nums; }
 .legend { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .legend li, #log li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
@@ -111,6 +117,16 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
     </main>
     <aside class="side">
       <section class="card"><h2 id="countLabel"></h2><div class="big" id="count">0</div></section>
+      <section class="card team">
+        <h2 id="teamLabel"></h2>
+        <div class="code" id="code"></div>
+        <p class="hint" id="teamHint"></p>
+        <button id="share" class="btn" type="button"></button>
+        <form id="join" class="join" autocomplete="off">
+          <input id="joinCode" maxlength="14" autocapitalize="characters" spellcheck="false">
+          <button class="btn" id="joinSend" type="submit"></button>
+        </form>
+      </section>
       <section class="card"><h2 id="legendLabel"></h2><ul class="legend" id="legend"></ul></section>
       <section class="card"><h2 id="logLabel"></h2><ul id="log"></ul></section>
     </aside>
@@ -119,7 +135,7 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
 <script>
 const COPY = {
   fr: {
-    famous: "Pages très connues", wide: "Pages connues", deep: "100 000 pages (difficile)", next: "Nouvelle page", giveup: "Abandonner", sure: "Confirmer l'abandon",
+    team: "À plusieurs", teamHint: "Partagez ce code : vos amis jouent la même page, et chaque mot trouvé apparaît chez tout le monde.", joinHint: "Code d'un ami", joinSend: "Rejoindre", noCode: "Ce code ne correspond à aucune partie. Vérifiez-le auprès de votre ami.", others: n => `${n} nouvel${n > 1 ? "s" : ""} essai${n > 1 ? "s" : ""} d'un autre joueur.`, share: "Copier le lien", copied: "Lien copié. Ouvrez-le n'importe où pour reprendre cette partie.", gone: "Cette partie est introuvable. Voici une nouvelle page.", famous: "Pages très connues", wide: "Pages connues", deep: "100 000 pages (difficile)", next: "Nouvelle page", giveup: "Abandonner", sure: "Confirmer l'abandon",
     send: "Essayer", placeholder: "Un mot, sous n'importe quelle forme", count: "Essais", legend: "Couleurs", log: "Vos essais",
     same: "Même mot, quelle que soit la forme", family: "Lien direct (singe → primate)", scene: "Même domaine (roi → château)", none: "Pas de lien trouvé",
     loading: "Choix d'une page…", noPage: "Wikipédia n'a pas renvoyé de page. Attendez un instant, puis cliquez sur Nouvelle page.", dup: w => `Déjà essayé : ${w}.`, unknown: w => `« ${w} » n'est pas un mot connu. Cet essai ne compte pas.`,
@@ -129,7 +145,7 @@ const COPY = {
     letters: n => `${n}`, wordLabel: "Mot",
   },
   en: {
-    famous: "Very famous pages", wide: "Well-known pages", deep: "100,000 pages (hard)", next: "New page", giveup: "Give up", sure: "Confirm giving up",
+    team: "Play together", teamHint: "Share this code: your friends play the same page, and every word found shows up for everyone.", joinHint: "A friend's code", joinSend: "Join", noCode: "That code doesn't match any game. Check it with your friend.", others: n => `${n} new guess${n > 1 ? "es" : ""} from another player.`, share: "Copy link", copied: "Link copied. Open it anywhere to continue this game.", gone: "This game wasn't found. Here's a new page.", famous: "Very famous pages", wide: "Well-known pages", deep: "100,000 pages (hard)", next: "New page", giveup: "Give up", sure: "Confirm giving up",
     send: "Try", placeholder: "One word, in any form", count: "Guesses", legend: "Colours", log: "Your guesses",
     same: "Same word, in any form", family: "Direct link (monkey → primate)", scene: "Same area (rain → cloud)", none: "No link found",
     loading: "Picking a page…", noPage: "Wikipedia didn't return a page. Wait a moment, then click New page.", dup: w => `Already tried: ${w}.`, unknown: w => `"${w}" isn't a known word. This guess doesn't count.`,
@@ -147,7 +163,7 @@ const store = {
 };
 
 let game = null, lang = store.get("cav-lang", "fr"), level = store.get("cav-level", "famous");
-let log = [], queue = [], busy = false, confirming = false, countsShown = new Set(), known = new Set();
+let queue = [], busy = false, confirming = false, countsShown = new Set(), known = new Set();
 const t = () => COPY[lang];
 
 function paintCopy() {
@@ -157,6 +173,11 @@ function paintCopy() {
   $("level").replaceChildren(...["famous", "wide", "deep"].map(v => new Option(c[v], v)));
   $("level").value = level;
   $("next").textContent = c.next;
+  $("share").textContent = c.share;
+  $("teamLabel").textContent = c.team;
+  $("teamHint").textContent = c.teamHint;
+  $("joinCode").placeholder = c.joinHint;
+  $("joinSend").textContent = c.joinSend;
   $("giveup").textContent = confirming ? c.sure : c.giveup;
   $("send").textContent = c.send;
   $("word").placeholder = c.placeholder;
@@ -243,7 +264,8 @@ function render() {
   if (paragraph.childNodes.length) textEl.append(paragraph);
 
   $("count").textContent = game.count;
-  $("log").replaceChildren(...log.map(g => row(g.tier || "none", g.word, g.hits || "")));
+  $("code").textContent = formatCode(game.id);
+  $("log").replaceChildren(...[...game.log].reverse().map(g => row(g.tier || "none", g.word, g.hits || "")));
   $("word").disabled = $("send").disabled = $("giveup").disabled = game.finished;
 
   const result = $("result");
@@ -275,9 +297,74 @@ function markFresh(state) {
   }
 }
 
+const formatCode = id => id.toUpperCase().replace(/^(.{4})(.{4})$/, "$1-$2");
+
+// Other players' guesses arrive here. Nothing is sent while this tab has a guess on its way.
+async function poll() {
+  if (!game || game.finished || busy || queue.length || document.hidden) return;
+  const id = game.id, before = game.count;
+  try {
+    const response = await fetch(`api/game/${id}?known=${before}`);
+    if (!response.ok) return;
+    const state = await response.json();
+    if (state.same || !game || game.id !== id || busy || game.count !== before) return;
+    game = state;
+    markFresh(game);
+    render();
+    if (game.count > before) say(t().others(game.count - before));
+  } catch { /* Try again on the next round. */ }
+}
+
+const gameLink = id => {
+  history.replaceState(null, "", `#${id}`);
+  store.set("cav-game", id);
+};
+
+// A resumed round shows what was already found without marking it all as new.
+function adopt(state, resumed) {
+  game = state;
+  lang = state.lang;
+  level = state.level;
+  store.set("cav-lang", lang);
+  store.set("cav-level", level);
+  queue = []; busy = false; confirming = false; countsShown = new Set(); known = new Set();
+  if (resumed) {
+    for (const token of state.tokens) if (token.word && token.revealed) known.add(token.i);
+  }
+  markFresh(game);
+  gameLink(game.id);
+  paintCopy();
+  say("");
+  render();
+  if (!game.finished) $("word").focus();
+}
+
+async function resume(id) {
+  try {
+    const response = await fetch(`api/game/${encodeURIComponent(id)}`);
+    if (response.status === 404) return false;
+    const state = await response.json();
+    if (state.error) return false;
+    adopt(state, true);
+    return true;
+  } catch {
+    say(t().net, true);
+    return true; // The round may still exist, so don't replace it because of a network error.
+  }
+}
+
+async function start() {
+  paintCopy();
+  const fromLink = location.hash.slice(1);
+  const id = fromLink || store.get("cav-game", "");
+  if (id && await resume(id)) return;
+  await newGame();
+  if (fromLink) say(t().gone, true);
+}
+
 async function newGame() {
   game = null;
-  log = []; queue = []; busy = false; confirming = false; countsShown = new Set(); known = new Set();
+  queue = []; busy = false; confirming = false; countsShown = new Set(); known = new Set();
   paintCopy();
   say("");
   $("result").hidden = true;
@@ -294,10 +381,7 @@ async function newGame() {
   try {
     const state = await post("api/new", { lang, level });
     if (state.error) { say(t().noPage, true); $("text").replaceChildren(); return; }
-    game = state;
-    markFresh(game);
-    render();
-    $("word").focus();
+    adopt(state, false);
   } catch {
     say(t().net, true);
   } finally {
@@ -327,7 +411,6 @@ async function drain() {
     else if (!answer.error) {
       game = answer.state;
       markFresh(game);
-      log.unshift({ word: answer.word, tier: answer.tier, hits: answer.hits });
       if (answer.hits) say(c.hit(answer.word, answer.hits));
       else if (answer.near) say(c.near(answer.word, answer.near));
       else say(c.nothing(answer.word));
@@ -347,6 +430,35 @@ $("entry").addEventListener("submit", event => {
   drain();
 });
 $("next").addEventListener("click", newGame);
+$("join").addEventListener("submit", async event => {
+  event.preventDefault();
+  const code = $("joinCode").value.toLowerCase().replace(/[^0-9a-f]/g, "");
+  if (!code) return;
+  if (await resume(code)) $("joinCode").value = "";
+  else say(t().noCode, true);
+});
+$("share").addEventListener("click", async () => {
+  if (!game) return;
+  const link = location.href;
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(link);
+    copied = true;
+  } catch {
+    // The clipboard API needs HTTPS, so plain HTTP uses the older way.
+    const field = document.createElement("textarea");
+    field.value = link;
+    document.body.append(field);
+    field.select();
+    try { copied = document.execCommand("copy"); } catch { copied = false; }
+    field.remove();
+  }
+  say(copied ? t().copied : link);
+});
+window.addEventListener("hashchange", () => {
+  const id = location.hash.slice(1);
+  if (id && (!game || game.id !== id)) start();
+});
 $("lang").addEventListener("change", () => { lang = $("lang").value; store.set("cav-lang", lang); newGame(); });
 $("level").addEventListener("change", () => { level = $("level").value; store.set("cav-level", level); newGame(); });
 $("giveup").addEventListener("click", async () => {
@@ -365,8 +477,9 @@ $("giveup").addEventListener("click", async () => {
   }
 });
 
-paintCopy();
-newGame();
+start();
+setInterval(poll, 3000);
+document.addEventListener("visibilitychange", poll);
 </script>
 </body>
 </html>

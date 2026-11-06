@@ -31,6 +31,9 @@ To put it behind nginx under a sub-URL, see `deploy/`. The app only listens on 1
 - **Same area (yellow):** the same broad category or setting, such as pangolin and primate, or roi and château.
 - **Numbers:** compared by value, but only with their own kind: digits with digits and Roman numerals with Roman numerals, so `XIX` matches `XIXe` but not `19`. Numbers within about 1% are orange and within about 10% are yellow, and the closest guess stays in the slot.
 
+Each round has its own link, shown in the address bar. Reloading resumes the round, and opening the link on another computer continues it. Rounds are saved on the server and kept for 180 days after their last guess. 
+To play together, share the round's code or link. Everyone plays the same page, and each browser picks up other players' guesses within about 3 seconds.
+
 A close guess is written in the slot it's close to. The hidden word itself stays hidden, and a closer guess replaces a weaker one. Clicking a bar shows its letter count.
 
 ## How closeness is scored

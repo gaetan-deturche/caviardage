@@ -1,5 +1,5 @@
 """One round: holds the hidden article and answers guesses. The browser never gets hidden text."""
-import uuid
+import secrets
 
 from . import text
 
@@ -8,9 +8,10 @@ TIER_RANK = {"same": 3, "family": 2, "scene": 1}
 
 
 class Game:
-    def __init__(self, article, lang, closeness):
-        self.id = uuid.uuid4().hex
+    def __init__(self, article, lang, closeness, level="famous", game_id=None):
+        self.id = game_id or secrets.token_hex(4)
         self.lang = lang
+        self.level = level
         self.closeness = closeness
         self.article = article
         self.guesses = {}
@@ -35,6 +36,16 @@ class Game:
                 following = self.tokens[index + 1]["text"] if index + 1 < len(self.tokens) else ""
                 elided = following[:1] in ("'", "’")  # D' and L' are not Roman numerals.
                 token["number"] = None if elided else text.number_value(token["text"], lang)
+
+    @classmethod
+    def restore(cls, game_id, saved, closeness):
+        """Rebuild a saved round by replaying its guesses."""
+        game = cls(saved["article"], saved["lang"], closeness, level=saved["level"], game_id=game_id)
+        for word in saved["guesses"]:
+            game.guess(word)
+        if saved["gave_up"]:
+            game.give_up()
+        return game
 
     def _add(self, token, part):
         token = {**token, "part": part, "i": len(self.tokens)}
@@ -63,7 +74,8 @@ class Game:
 
     def state(self):
         payload = {
-            "id": self.id, "lang": self.lang, "tokens": self.public_tokens(), "count": len(self.guesses),
+            "id": self.id, "lang": self.lang, "level": self.level, "tokens": self.public_tokens(),
+            "count": len(self.guesses), "log": list(self.guesses.values()),
             "finished": self.finished, "gaveUp": self.gave_up,
         }
         if self.finished:
