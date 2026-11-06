@@ -262,8 +262,18 @@ def ordinal_ending(word):
     return match.group(1) if match else None
 
 
+FRACTION_RE = re.compile(r"(\d?)([¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞↉⅟])")
+
+
+def _write_fraction(match):
+    """½ reads as 1/2, and 3½ as 3 1/2 so it can't be mistaken for 31/2."""
+    written = unicodedata.normalize("NFKC", match.group(2)).replace(FRACTION_SLASH, "/")
+    return f"{match.group(1)} {written}" if match.group(1) else written
+
+
 def tokenize(text):
     """Split text into [{"word": bool, "text": str}], keeping everything else as is."""
+    text = FRACTION_RE.sub(_write_fraction, text)
     tokens, position = [], 0
     for match in WORD_RE.finditer(text):
         if match.start() > position:
