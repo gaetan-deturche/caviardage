@@ -269,7 +269,7 @@ function render() {
 function markFresh(state) {
   for (const token of state.tokens) {
     if (token.word && token.revealed) {
-      token.fresh = !known.has(token.i) && !state.gaveUp;
+      token.fresh = !known.has(token.i) && !state.finished; // Finishing reveals everything, not just what was found.
       known.add(token.i);
     }
   }
