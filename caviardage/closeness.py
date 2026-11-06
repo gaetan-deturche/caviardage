@@ -19,8 +19,9 @@ ROOT = Path(__file__).resolve().parent.parent
 # Tuned on labelled word pairs and on unrelated guesses against real pages.
 FAMILY_SCORE = 0.40
 SCENE_SCORE = 0.20
+KIND_OF_MIN_SCORE = 0.05  # A true "is a kind of" link needs only slight support.
 WORDNET_MIN_SCORE = 0.10  # A WordNet link needs some support, to skip wrong senses.
-WORDNET_SCENE_MIN_SCORE = 0.15  # Broad links are easier to hit by accident, so they need more.
+WORDNET_SCENE_MIN_SCORE = 0.15  # Sharing a broad parent is easier to hit by accident, so it needs more.
 FAMILY_GROUP_SIZE = 400  # Sharing a parent only counts if that parent is specific.
 SCENE_GROUP_SIZE = 5000
 
@@ -54,9 +55,17 @@ class Closeness:
         for lemma in text.lemmas(word, lang):
             for synset in store.word_synsets(lang, lemma):
                 for ancestor, steps in store.synset_ancestors(synset):
-                    if steps < found.get(ancestor, 99):
+                    if steps < found.get(ancestor, 999):
                         found[ancestor] = steps
         return found
+
+    def _is_kind_of(self, ancestors_of_word, category_word, lang):
+        """True if the word is a kind of the category, however far up: a butterfly is an animal."""
+        for lemma in text.lemmas(category_word, lang):
+            for synset in store.word_synsets(lang, lemma):
+                if synset in ancestors_of_word and store.group_size(synset) <= SCENE_GROUP_SIZE:
+                    return True
+        return False
 
     def _wordnet_tier(self, a, b, lang):
         ancestors_a, ancestors_b = self._ancestors(a, lang), self._ancestors(b, lang)
@@ -76,8 +85,12 @@ class Closeness:
         """Tier and score of guess a against article word b."""
         score = self.score(a, b, lang)
         tier = "family" if score >= FAMILY_SCORE else "scene" if score >= SCENE_SCORE else None
-        if tier != "family" and score >= WORDNET_MIN_SCORE:
-            linked = self._wordnet_tier(a, b, lang)
-            if linked == "family" or (linked == "scene" and tier is None and score >= WORDNET_SCENE_MIN_SCORE):
+        if tier != "family" and score >= KIND_OF_MIN_SCORE:
+            linked = self._wordnet_tier(a, b, lang) if score >= WORDNET_MIN_SCORE else None
+            if linked == "family":
                 tier = linked
+            elif tier is None:
+                kind_of = self._is_kind_of(self._ancestors(b, lang), a, lang) or self._is_kind_of(self._ancestors(a, lang), b, lang)
+                if kind_of or (linked == "scene" and score >= WORDNET_SCENE_MIN_SCORE):
+                    tier = "scene"
         return tier, score

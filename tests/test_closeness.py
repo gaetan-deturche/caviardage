@@ -24,6 +24,14 @@ def test_at_least_scene(closeness, a, b, lang):
     assert closeness.tier(a, b, lang)[0] in ("scene", "family")
 
 
+@pytest.mark.parametrize("a,b,lang", [
+    ("animal", "papillon", "fr"), ("animal", "chenille", "fr"), ("papillon", "animal", "fr"),
+    ("animal", "butterfly", "en"), ("animal", "girafe", "fr"), ("outil", "marteau", "fr"),
+])
+def test_kinds_of_a_category_are_close_however_far_up(closeness, a, b, lang):
+    assert closeness.tier(a, b, lang)[0] in ("scene", "family")
+
+
 def test_pangolin_is_not_family(closeness):
     assert closeness.tier("pangolin", "primate", "en")[0] == "scene"
 

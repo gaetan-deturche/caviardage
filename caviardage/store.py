@@ -40,7 +40,7 @@ def word_synsets(lang, word):
 
 @functools.lru_cache(maxsize=2000)
 def synset_ancestors(synset):
-    """((ancestor, steps), ...) up to three steps above a synset."""
+    """((ancestor, steps), ...) for every ancestor of a synset."""
     found = _one("SELECT up FROM wn_up WHERE synset=?", synset)
     if not found:
         return ()

@@ -79,7 +79,7 @@ def add_wordnet(db):
         best = {}
         for ancestor, steps in synset.hypernym_distances():
             key = synset_id(ancestor)
-            if steps <= 3 and steps < best.get(key, 99):
+            if steps < best.get(key, 999):
                 best[key] = steps
                 if key not in sizes:
                     sizes[key] = sum(1 for _ in ancestor.closure(lambda s: s.hyponyms()))
