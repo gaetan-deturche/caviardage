@@ -37,23 +37,6 @@ def test_plural_missing_from_the_word_list_still_gets_closeness(closeness):
     assert closeness.score("relativite", "relativité", "fr") > 0.99
 
 
-@pytest.mark.parametrize("word,lang", [("status", "fr"), ("particle", "fr"), ("bridge", "fr"), ("particule", "en"), ("fromage", "en")])
-def test_words_from_the_other_language_are_accepted(closeness, word, lang):
-    assert closeness.in_vocabulary(word, lang)
-
-
-@pytest.mark.parametrize("word,lang", [("zzzqxs", "fr"), ("qwxzt", "en"), ("blorpes", "fr")])
-def test_nonsense_is_still_rejected(closeness, word, lang):
-    assert not closeness.in_vocabulary(word, lang)
-
-
-def test_borrowed_words_are_close_to_their_translation(closeness):
-    assert closeness.tier("particle", "particule", "fr")[0] == "family"
-    assert closeness.tier("bridge", "pont", "fr")[0] == "family"
-    assert closeness.tier("status", "statut", "fr")[0] in ("scene", "family")
-    assert closeness.tier("bridge", "fromage", "fr")[0] is None
-
-
 def test_pangolin_is_not_family(closeness):
     assert closeness.tier("pangolin", "primate", "en")[0] == "scene"
 

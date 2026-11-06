@@ -24,7 +24,6 @@ WORDNET_MIN_SCORE = 0.10  # A WordNet link needs some support, to skip wrong sen
 WORDNET_SCENE_MIN_SCORE = 0.15  # Sharing a broad parent is easier to hit by accident, so it needs more.
 FAMILY_GROUP_SIZE = 400  # Sharing a parent only counts if that parent is specific.
 SCENE_GROUP_SIZE = 5000
-OTHER_LANGUAGE = {"fr": "en", "en": "fr"}
 
 
 class Closeness:
@@ -32,9 +31,7 @@ class Closeness:
         self.matrix = np.load(ROOT / "data" / "numberbatch.npy", mmap_mode="r")
 
     def in_vocabulary(self, word, lang):
-        """Known in this language or the other one: borrowed words like status are fair guesses."""
-        lower = word.lower()
-        return store.vector_index(lang, lower) is not None or store.vector_index(OTHER_LANGUAGE[lang], lower) is not None
+        return store.vector_index(lang, word.lower()) is not None
 
     @functools.lru_cache(maxsize=3000)
     def _numberbatch(self, word, lang):
@@ -43,11 +40,6 @@ class Closeness:
             if index is not None:
                 vector = np.asarray(self.matrix[index], dtype=np.float32)
                 return vector / (np.linalg.norm(vector) or 1)
-        # The vectors link languages, so a borrowed word can still be scored: particle and particule.
-        index = store.vector_index(OTHER_LANGUAGE[lang], word.lower())
-        if index is not None:
-            vector = np.asarray(self.matrix[index], dtype=np.float32)
-            return vector / (np.linalg.norm(vector) or 1)
         return None
 
     def score(self, a, b, lang):

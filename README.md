@@ -26,7 +26,6 @@ To put it behind nginx under a sub-URL, see `deploy/`. The app only listens on 1
 
 ## How guesses work
 
-- **Other languages:** a word from the other language, such as `status` on a French page, counts as a normal guess and can be close to its translation.
 - **Matching (green):** accents, capitals and word forms don't matter. `est`, `était`, `fut` and `être` all reveal each other, and `a` matches `à`.
 - **Direct link (orange):** a family link, such as monkey and primate, or a very strong association.
 - **Same area (yellow):** the same broad category or setting, such as pangolin and primate, or roi and château.
