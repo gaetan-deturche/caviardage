@@ -32,7 +32,7 @@ A close guess is written in the slot it's close to. The hidden word itself stays
 
 ## How closeness is scored
 
-`caviardage/closeness.py` combines WordNet (what a word is), ConceptNet Numberbatch (related words) and a small multilingual text model (names and unknown words). The thresholds are constants at the top of that file. Very common words such as `peut` and `alors` only ever match exactly.
+`caviardage/closeness.py` combines WordNet (what a word is), ConceptNet Numberbatch (related words) and a small multilingual text model that refines the score. Words Numberbatch doesn't know only ever match exactly. The thresholds are constants at the top of that file. Very common words such as `peut` and `alors` only ever match exactly.
 
 ## Rebuilding the data
 

@@ -3,7 +3,7 @@
 Three signals, from most to least specific:
 - WordNet says what a word is: a monkey is a primate.
 - Numberbatch says which words are related, using a knowledge graph.
-- A multilingual text model covers names and words Numberbatch does not know.
+- A multilingual text model refines the score, but can't create a match by itself.
 
 The result is a tier: "family" (a direct link), "scene" (the same broad
 category or setting) or None.
@@ -27,7 +27,7 @@ MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 FAMILY_SCORE = 0.40
 SCENE_SCORE = 0.20
 NUMBERBATCH_WEIGHT = 0.8
-TEXT_ONLY_SCALE = 0.4  # The text model alone is noisy on rare words, so it counts for less.
+NUMBERBATCH_MIN = 0.15  # Below this the text model can't create a match by itself.
 WORDNET_MIN_SCORE = 0.10  # A WordNet link needs some support, to skip wrong senses.
 WORDNET_SCENE_MIN_SCORE = 0.15  # Broad links are easier to hit by accident, so they need more.
 FAMILY_GROUP_SIZE = 400  # Sharing a parent only counts if that parent is specific.
@@ -77,8 +77,11 @@ class Closeness:
         by_text = float(self._embeddings[a.lower()] @ self._embeddings[b.lower()])
         va, vb = self._numberbatch(a, lang), self._numberbatch(b, lang)
         if va is None or vb is None:
-            return by_text * TEXT_ONLY_SCALE
-        return NUMBERBATCH_WEIGHT * float(va @ vb) + (1 - NUMBERBATCH_WEIGHT) * by_text
+            return 0.0  # The text model alone can't be trusted on rare words: musique/acœlomate = 0.76.
+        related = float(va @ vb)
+        if related < NUMBERBATCH_MIN:
+            return related
+        return NUMBERBATCH_WEIGHT * related + (1 - NUMBERBATCH_WEIGHT) * by_text
 
     def _group_size(self, synset):
         name = synset.name()
