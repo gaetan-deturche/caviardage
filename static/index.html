@@ -119,7 +119,7 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
 <script>
 const COPY = {
   fr: {
-    famous: "Pages très connues", wide: "Toutes les pages connues", next: "Nouvelle page", giveup: "Abandonner", sure: "Confirmer l'abandon",
+    famous: "Pages très connues", wide: "Pages connues", deep: "100 000 pages (difficile)", next: "Nouvelle page", giveup: "Abandonner", sure: "Confirmer l'abandon",
     send: "Essayer", placeholder: "Un mot, sous n'importe quelle forme", count: "Essais", legend: "Couleurs", log: "Vos essais",
     same: "Même mot, quelle que soit la forme", family: "Lien direct (singe → primate)", scene: "Même domaine (roi → château)", none: "Pas de lien trouvé",
     loading: "Choix d'une page…", noPage: "Wikipédia n'a pas renvoyé de page. Attendez un instant, puis cliquez sur Nouvelle page.", dup: w => `Déjà essayé : ${w}.`, unknown: w => `« ${w} » n'est pas un mot connu. Cet essai ne compte pas.`,
@@ -129,7 +129,7 @@ const COPY = {
     letters: n => `${n}`, wordLabel: "Mot",
   },
   en: {
-    famous: "Very famous pages", wide: "All well-known pages", next: "New page", giveup: "Give up", sure: "Confirm giving up",
+    famous: "Very famous pages", wide: "Well-known pages", deep: "100,000 pages (hard)", next: "New page", giveup: "Give up", sure: "Confirm giving up",
     send: "Try", placeholder: "One word, in any form", count: "Guesses", legend: "Colours", log: "Your guesses",
     same: "Same word, in any form", family: "Direct link (monkey → primate)", scene: "Same area (rain → cloud)", none: "No link found",
     loading: "Picking a page…", noPage: "Wikipedia didn't return a page. Wait a moment, then click New page.", dup: w => `Already tried: ${w}.`, unknown: w => `"${w}" isn't a known word. This guess doesn't count.`,
@@ -154,7 +154,7 @@ function paintCopy() {
   const c = t();
   document.documentElement.lang = lang;
   $("lang").value = lang;
-  $("level").replaceChildren(...["famous", "wide"].map(v => new Option(c[v], v)));
+  $("level").replaceChildren(...["famous", "wide", "deep"].map(v => new Option(c[v], v)));
   $("level").value = level;
   $("next").textContent = c.next;
   $("giveup").textContent = confirming ? c.sure : c.giveup;

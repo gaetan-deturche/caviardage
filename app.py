@@ -26,7 +26,7 @@ def index():
 def new_game():
     body = request.get_json(silent=True) or {}
     lang = body.get("lang") if body.get("lang") in ("fr", "en") else "fr"
-    level = body.get("level") if body.get("level") in ("famous", "wide") else "famous"
+    level = body.get("level") if body.get("level") in ("famous", "wide", "deep") else "famous"
     try:
         article = articles.next(lang, level)
     except ArticleError as error:

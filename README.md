@@ -36,7 +36,8 @@ A close guess is written in the slot it's close to. The hidden word itself stays
 
 ## Rebuilding the data
 
-- `scripts/build_pool.py` rebuilds `data/pool.json` from Wikipedia's Vital articles lists.
+- `scripts/build_pool.py` rebuilds the first two levels of `data/pool.json` from Wikipedia's Vital articles lists.
+- `scripts/build_deep_pool.py` adds the 100,000-page level, ranked by Wikimedia's monthly clickstream data. It's a popularity ranking and isn't curated, so it can include news, celebrity and adult subjects.
 - `scripts/build_vectors.py` rebuilds the word vectors from Numberbatch `mini.h5`; its docstring has the download link.
 
 ## Tests
