@@ -292,7 +292,7 @@ async function newGame() {
   $("word").disabled = $("send").disabled = $("giveup").disabled = true;
   $("next").disabled = true;
   try {
-    const state = await post("/api/new", { lang, level });
+    const state = await post("api/new", { lang, level });
     if (state.error) { say(t().noPage, true); $("text").replaceChildren(); return; }
     game = state;
     markFresh(game);
@@ -313,7 +313,7 @@ async function drain() {
     const id = game.id;
     let answer;
     try {
-      answer = await post("/api/guess", { id, word });
+      answer = await post("api/guess", { id, word });
     } catch {
       say(t().net, true);
       break;
@@ -355,7 +355,7 @@ $("giveup").addEventListener("click", async () => {
   confirming = false;
   paintCopy();
   try {
-    const state = await post("/api/giveup", { id: game.id });
+    const state = await post("api/giveup", { id: game.id });
     if (state.error) { say(t().expired, true); return; }
     game = state;
     markFresh(game);

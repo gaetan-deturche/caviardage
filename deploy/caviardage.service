@@ -1,0 +1,21 @@
+[Unit]
+Description=Caviardage word game
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=caviardage
+WorkingDirectory=/opt/caviardage
+ExecStart=/opt/caviardage/.venv/bin/python app.py
+Environment=OPENBLAS_NUM_THREADS=1
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=10
+MemoryMax=200M
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

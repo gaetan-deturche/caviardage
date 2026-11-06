@@ -22,6 +22,8 @@ curl -L -o .cache/numberbatch/mini.h5 https://conceptnet.s3.amazonaws.com/precom
 
 Then open http://127.0.0.1:5180. It needs an internet connection to fetch each page.
 
+To put it behind nginx under a sub-URL, see `deploy/`. The app only listens on 127.0.0.1.
+
 ## How guesses work
 
 - **Matching (green):** accents, capitals and word forms don't matter. `est`, `était`, `fut` and `être` all reveal each other, and `a` matches `à`.

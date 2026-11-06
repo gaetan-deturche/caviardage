@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from flask import Flask, jsonify, request, send_from_directory
+from waitress import serve
 
 from caviardage.articles import ArticleError, Articles
 from caviardage.closeness import Closeness
@@ -61,4 +62,4 @@ def give_up():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=PORT, threaded=True)
+    serve(app, host="127.0.0.1", port=PORT, threads=4)

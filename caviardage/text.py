@@ -31,6 +31,7 @@ AMBIGUOUS = {
     "en": {"saw": ["see", "saw"], "left": ["leave", "left"], "found": ["find", "found"]},
 }
 
+MAX_ACCENT_SLOTS = 10  # Keeps a long unknown guess from trying thousands of spellings.
 ACCENTS = {"e": "éèê", "a": "àâ", "u": "ùû", "i": "îï", "o": "ô", "c": "ç"}
 
 STOPWORDS = {
@@ -64,6 +65,8 @@ def _accent_variants(word, lang):
     if lang != "fr" or word != fold(word) or _known(word, lang):
         return []
     slots = [i for i, c in enumerate(word) if c in ACCENTS]
+    if len(slots) > MAX_ACCENT_SLOTS:
+        return []
     found = []
     for count in (1, 2, 3):
         for places in itertools.combinations(slots, count):

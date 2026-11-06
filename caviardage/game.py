@@ -3,6 +3,7 @@ import uuid
 
 from . import text
 
+MAX_WORD_LENGTH = 40
 TIER_RANK = {"same": 3, "family": 2, "scene": 1}
 
 
@@ -71,7 +72,7 @@ class Game:
 
     def guess(self, raw):
         word = raw.strip()
-        if not word or not text.WORD_RE.fullmatch(word):
+        if not word or len(word) > MAX_WORD_LENGTH or not text.WORD_RE.fullmatch(word):
             return {"error": "invalid"}
         if self.finished:
             return {"error": "finished"}

@@ -63,6 +63,12 @@ def test_duplicate_and_unknown_do_not_count():
     assert game.state()["count"] == 1
 
 
+def test_overlong_guess_is_rejected_and_not_counted():
+    game = new_game()
+    assert game.guess("e" * 41)["error"] == "invalid"
+    assert game.state()["count"] == 0
+
+
 def test_win_needs_every_title_word():
     game = new_game()
     game.guess("pont")
