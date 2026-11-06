@@ -27,9 +27,8 @@ To put it behind nginx under a sub-URL, see `deploy/`. The app only listens on 1
 ## How guesses work
 
 - **Matching (green):** accents, capitals and word forms don't matter. `est`, `était`, `fut` and `être` all reveal each other, and `a` matches `à`.
-- **Direct link (orange):** a family link, such as monkey and primate, or a very strong association.
-- **Same area (yellow):** the same broad category or setting, such as pangolin and primate, or roi and château.
-- **Numbers:** compared by value, but only with their own kind: digits with digits and Roman numerals with Roman numerals, so `XIX` matches `XIXe` but not `19`. Numbers within about 1% are orange and within about 10% are yellow, and the closest guess stays in the slot.
+- **Close guesses:** a guess related to a hidden word is written in its bar, and the closer it is, the whiter its text. The closest guess stays in each bar.
+- **Numbers:** compared by value, but only with their own kind: digits with digits and Roman numerals with Roman numerals, so `XIX` matches `XIXe` but not `19`. Every number guess lights every number of its kind, however far away.
 
 Each round has its own link, shown in the address bar. Reloading resumes the round, and opening the link on another computer continues it. Rounds are saved on the server and kept for 180 days after their last guess. 
 To play together, share the round's code or link. Everyone plays the same page, and each browser picks up other players' guesses within about 3 seconds.

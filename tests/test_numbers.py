@@ -48,16 +48,16 @@ def test_words_stay_words_in_guesses(word):
 
 
 @pytest.mark.parametrize("a,b,tier", [
-    (1880, 1883, "family"), (1870, 1883, "family"), (1800, 1883, "scene"), (1500, 1883, None),
-    (19, 20, "family"), (18, 20, "scene"), (15, 20, None), (5, 6, "family"), (5, 7, "scene"), (1, 1000, None),
+    (1880, 1883, "family"), (1870, 1883, "family"), (1800, 1883, "scene"), (1500, 1883, "scene"),
+    (19, 20, "family"), (18, 20, "scene"), (15, 20, "scene"), (5, 6, "family"), (5, 7, "scene"), (1, 1000, "scene"), (0, 5, "scene"),
 ])
 def test_tiers(a, b, tier):
     assert text.number_tier(a, b)[0] == tier
 
 
 def test_closer_scores_higher():
-    assert text.number_tier(1882, 1883)[1] > text.number_tier(1880, 1883)[1] > text.number_tier(1800, 1883)[1]
-    assert 0 < text.number_tier(1800, 1883)[1] < 1
+    scores = [text.number_tier(n, 1883)[1] for n in (1882, 1880, 1800, 1500, 1000, 5)]
+    assert scores == sorted(scores, reverse=True) and all(0 < s < 1 for s in scores)
 
 
 ARTICLE = {
@@ -82,12 +82,12 @@ def shown(state):
 def test_roman_and_digits_never_match_each_other():
     assert "XIXe" not in shown(game().guess("19")["state"])
     assert "1883" not in shown(game().guess("MDCCCLXXXIII")["state"])
-    # 10 is one away from the digit 9 only, and never touches the Roman X.
+    # Digits light the 2 digit numbers on the page (1883, 9) and none of the 3 Roman ones.
     state = game().guess("10")["state"]
-    assert len(slots(state, "10")) == 1 and "X" not in shown(state)
-    # IX is next to the Roman X only, and never touches the digit 9.
+    assert len(slots(state, "10")) == 2 and "X" not in shown(state)
+    # Roman numerals light the 3 Roman numbers (XIX, X, XIV) and neither digit number.
     state = game().guess("IX")["state"]
-    assert len(slots(state, "IX")) == 1 and "9" not in shown(state)
+    assert len(slots(state, "IX")) == 3 and "9" not in shown(state)
 
 
 def test_same_kind_reveals_every_form():
@@ -97,14 +97,27 @@ def test_same_kind_reveals_every_form():
 
 
 def test_closest_number_stays_in_slot():
+    def year_slot(state):
+        return next(t for t in state["tokens"] if t.get("near") and t.get("length") == 4)
+
     g = game()
-    assert slots(g.guess("1800")["state"], "1800")[0]["tier"] == "scene"
-    state = g.guess("1880")["state"]
-    assert slots(state, "1880")[0]["tier"] == "family" and not slots(state, "1800")
-    state = g.guess("1881")["state"]
-    assert slots(state, "1881") and not slots(state, "1880")
-    state = g.guess("1700")["state"]
-    assert slots(state, "1881") and not slots(state, "1700")
+    assert year_slot(g.guess("1800")["state"])["near"] == "1800"
+    assert year_slot(g.guess("1880")["state"])["near"] == "1880"
+    assert year_slot(g.guess("1881")["state"])["near"] == "1881"
+    assert year_slot(g.guess("3000")["state"])["near"] == "1881"
+
+
+def test_each_number_keeps_its_own_closest_guess():
+    g = game()
+    g.guess("1880")
+    state = g.guess("8")["state"]
+    assert {t["length"]: t["near"] for t in state["tokens"] if t.get("near")} == {4: "1880", 1: "8"}
+
+
+def test_every_number_guess_lights_every_number_of_its_kind_however_far():
+    result = game().guess("1000000")
+    assert result["matches"] == 2 and result["hits"] == 0
+    assert [t["shade"] for t in slots(result["state"], "1000000")] == [0.12, 0.12]
 
 
 def test_number_stays_hidden_while_close():

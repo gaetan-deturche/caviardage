@@ -12,9 +12,8 @@
   --desk: #c9d2d6; --paper: #f1f4f3; --ink: #1d2a33; --muted: #566670; --line: #b7c3c8;
   --bar: #141c22; --bar-text: #f1f4f3;
   --same: #1f7a4d; --same-bg: #d5ecdf;
-  --family: #b4540f; --family-bg: #f8dcc2; --family-text: #6e3105;
-  --scene: #8f7600; --scene-bg: #f5ecb0; --scene-text: #554600;
-  --missed-bg: #d6dee3; --missed-text: #4a5a64; --stamp: #a32638; --family-line: #c75b10; --scene-line: #c9a400;
+  --focus: #b4540f;
+  --missed-bg: #d6dee3; --missed-text: #4a5a64; --stamp: #a32638;
   --type: "Special Elite", "Courier New", monospace;
   --body: "Source Serif 4", Georgia, serif;
   --ui: "Barlow Semi Condensed", "Arial Narrow", Arial, sans-serif;
@@ -24,9 +23,8 @@
     --desk: #11181d; --paper: #1b252c; --ink: #e2e9ea; --muted: #9aaab2; --line: #33434d;
     --bar: #070b0e; --bar-text: #f1f4f3;
     --same: #63c994; --same-bg: #173c2a;
-    --family: #f0a062; --family-bg: #4d2a10; --family-text: #fbd7b8;
-    --scene: #dcc54b; --scene-bg: #423a0b; --scene-text: #f1e596;
-    --missed-bg: #33424c; --missed-text: #c2ccd2; --stamp: #e86a7d; --family-line: #e8772a; --scene-line: #d8b400;
+    --focus: #f0a062;
+    --missed-bg: #33424c; --missed-text: #c2ccd2; --stamp: #e86a7d;
     color-scheme: dark;
   }
 }
@@ -34,7 +32,7 @@
 html, body { margin: 0; }
 body { background: var(--desk); color: var(--ink); font: 400 18px/1.75 var(--body); padding-block: 20px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 button, input, select { font: 600 16px/1.2 var(--ui); color: inherit; }
-:focus-visible { outline: 3px solid var(--family); outline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
 .wrap { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 /* With a mouse the page scrolls as usual: the title comes first and the field stays pinned. */
@@ -77,10 +75,8 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
 #text p { margin: 0 0 16px; max-width: 72ch; overflow-wrap: anywhere; }
 
 .slot { display: inline-block; font: inherit; line-height: 1.2; vertical-align: baseline; border-radius: 2px; background: var(--bar); color: var(--bar-text); padding: 0 3px; margin: 0 1px; cursor: pointer; border: 0; text-align: center; }
-/* Bars stay black. The closer a guess, the whiter its text. The underline shows which kind of link it is. */
+/* Bars stay black. The closer a guess, the whiter its text. */
 .slot.family, .slot.scene { color: color-mix(in srgb, #fff calc(var(--shade) * 100%), #5c6a73); font-style: italic; }
-.slot.family { box-shadow: inset 0 -3px 0 var(--family-line); }
-.slot.scene { box-shadow: inset 0 -3px 0 var(--scene-line); }
 .ramp { margin-top: 8px; padding: 3px 6px; border-radius: 2px; background: var(--bar); font: italic 400 15px/1.2 var(--body); display: flex; justify-content: space-between; }
 .ramp span { flex: 1; text-align: center; }
 .easy { display: flex; gap: 6px; align-items: center; margin-top: 10px; cursor: pointer; }
@@ -103,7 +99,7 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
 .legend { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .legend li, #log li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .dot { width: 12px; height: 12px; border-radius: 2px; background: var(--line); }
-.dot.same { background: var(--same); } .dot.family { background: var(--family); } .dot.scene { background: var(--scene); }
+.dot.same { background: var(--same); }
 #log { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
 #log .w { overflow-wrap: anywhere; font-weight: 500; }
 #log .n { color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -166,9 +162,9 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
 <script>
 const COPY = {
   fr: {
-    easy: "Mode facile : voir le % en cliquant sur une barre", far: "loin", close: "proche", percent: n => `${n} %`, closeLabel: (n, word) => `« ${word} » est proche à ${n} %`, missedSample: "Surlignés", missedNote: ": les mots que vous n'aviez pas trouvés.", team: "À plusieurs", teamHint: "Partagez ce code : vos amis jouent la même page, et chaque mot trouvé apparaît chez tout le monde.", joinHint: "Code d'un ami", joinSend: "Rejoindre", noCode: "Ce code ne correspond à aucune partie. Vérifiez-le auprès de votre ami.", others: n => `${n} nouvel${n > 1 ? "s" : ""} essai${n > 1 ? "s" : ""} d'un autre joueur.`, share: "Copier le lien", copied: "Lien copié. Ouvrez-le n'importe où pour reprendre cette partie.", gone: "Cette partie est introuvable. Voici une nouvelle page.", famous: "Pages très connues", wide: "Pages connues", deep: "100 000 pages (difficile)", next: "Nouvelle page", giveup: "Abandonner", sure: "Confirmer l'abandon",
+    easy: "Mode facile : voir le % en cliquant sur une barre", far: "essai loin", close: "essai proche", percent: n => `${n} %`, closeLabel: (n, word) => `« ${word} » est proche à ${n} %`, missedSample: "Surlignés", missedNote: ": les mots que vous n'aviez pas trouvés.", team: "À plusieurs", teamHint: "Partagez ce code : vos amis jouent la même page, et chaque mot trouvé apparaît chez tout le monde.", joinHint: "Code d'un ami", joinSend: "Rejoindre", noCode: "Ce code ne correspond à aucune partie. Vérifiez-le auprès de votre ami.", others: n => `${n} nouvel${n > 1 ? "s" : ""} essai${n > 1 ? "s" : ""} d'un autre joueur.`, share: "Copier le lien", copied: "Lien copié. Ouvrez-le n'importe où pour reprendre cette partie.", gone: "Cette partie est introuvable. Voici une nouvelle page.", famous: "Pages très connues", wide: "Pages connues", deep: "100 000 pages (difficile)", next: "Nouvelle page", giveup: "Abandonner", sure: "Confirmer l'abandon",
     send: "Essayer", placeholder: "Un mot, sous n'importe quelle forme", count: "Essais", legend: "Couleurs", log: "Vos essais",
-    same: "Même mot, quelle que soit la forme", family: "Lien direct (singe → primate)", scene: "Même domaine (roi → château)", none: "Pas de lien trouvé",
+    same: "Mot trouvé, quelle que soit la forme", none: "Rien de proche",
     loading: "Choix d'une page…", noPage: "Wikipédia n'a pas renvoyé de page. Attendez un instant, puis cliquez sur Nouvelle page.", dup: w => `Déjà essayé : ${w}.`, unknown: w => `« ${w} » n'est pas un mot connu. Cet essai ne compte pas.`,
     invalid: "Entrez un seul mot.", nothing: w => `Rien de proche pour « ${w} ».`, expired: "Cette partie a expiré. Lancez une nouvelle page.", net: "Le serveur ne répond pas. Vérifiez qu'il tourne toujours.",
     hit: (w, n) => `${w} : ${n} mot${n > 1 ? "s" : ""} révélé${n > 1 ? "s" : ""}.`,
@@ -177,9 +173,9 @@ const COPY = {
     letters: n => `${n}`, wordLabel: "Mot",
   },
   en: {
-    easy: "Easy mode: see the % when clicking a bar", far: "far", close: "close", percent: n => `${n}%`, closeLabel: (n, word) => `"${word}" is ${n}% close`, missedSample: "Highlighted", missedNote: "words are the ones you hadn't found.", team: "Play together", teamHint: "Share this code: your friends play the same page, and every word found shows up for everyone.", joinHint: "A friend's code", joinSend: "Join", noCode: "That code doesn't match any game. Check it with your friend.", others: n => `${n} new guess${n > 1 ? "es" : ""} from another player.`, share: "Copy link", copied: "Link copied. Open it anywhere to continue this game.", gone: "This game wasn't found. Here's a new page.", famous: "Very famous pages", wide: "Well-known pages", deep: "100,000 pages (hard)", next: "New page", giveup: "Give up", sure: "Confirm giving up",
+    easy: "Easy mode: see the % when clicking a bar", far: "guess far", close: "guess close", percent: n => `${n}%`, closeLabel: (n, word) => `"${word}" is ${n}% close`, missedSample: "Highlighted", missedNote: "words are the ones you hadn't found.", team: "Play together", teamHint: "Share this code: your friends play the same page, and every word found shows up for everyone.", joinHint: "A friend's code", joinSend: "Join", noCode: "That code doesn't match any game. Check it with your friend.", others: n => `${n} new guess${n > 1 ? "es" : ""} from another player.`, share: "Copy link", copied: "Link copied. Open it anywhere to continue this game.", gone: "This game wasn't found. Here's a new page.", famous: "Very famous pages", wide: "Well-known pages", deep: "100,000 pages (hard)", next: "New page", giveup: "Give up", sure: "Confirm giving up",
     send: "Try", placeholder: "One word, in any form", count: "Guesses", legend: "Colours", log: "Your guesses",
-    same: "Same word, in any form", family: "Direct link (monkey → primate)", scene: "Same area (rain → cloud)", none: "No link found",
+    same: "Word found, in any form", none: "Nothing close",
     loading: "Picking a page…", noPage: "Wikipedia didn't return a page. Wait a moment, then click New page.", dup: w => `Already tried: ${w}.`, unknown: w => `"${w}" isn't a known word. This guess doesn't count.`,
     invalid: "Enter a single word.", nothing: w => `Nothing close to "${w}".`, expired: "This game expired. Start a new page.", net: "The server isn't responding. Check that it's still running.",
     hit: (w, n) => `${w}: ${n} word${n > 1 ? "s" : ""} revealed.`,
@@ -223,13 +219,14 @@ function paintCopy() {
   $("rampFar").textContent = c.far;
   $("rampClose").textContent = c.close;
   $("logLabel").textContent = c.log;
-  $("legend").replaceChildren(...["same", "family", "scene", "none"].map(k => row(k, c[k])));
+  $("legend").replaceChildren(...["same", "none"].map(k => row(k, c[k])));
 }
 
-function row(tier, label, extra) {
+function row(tier, label, extra, shade) {
   const li = document.createElement("li");
   const dot = document.createElement("span");
   dot.className = `dot ${tier}`;
+  if (shade) dot.style.background = `color-mix(in srgb, #fff ${shade * 100}%, #5c6a73)`;
   const name = document.createElement("span");
   name.className = "w";
   name.textContent = label;
@@ -334,7 +331,7 @@ function render() {
 
   $("count").textContent = game.count;
   $("code").textContent = formatCode(game.id);
-  $("log").replaceChildren(...[...game.log].reverse().map(g => row(g.tier || "none", g.word, g.hits || "")));
+  $("log").replaceChildren(...[...game.log].reverse().map(g => row(g.hits ? "same" : "none", g.word, g.hits || "", g.hits ? 0 : g.shade)));
   $("word").disabled = $("send").disabled = $("giveup").disabled = game.finished;
 
   const result = $("result");

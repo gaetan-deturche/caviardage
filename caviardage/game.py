@@ -133,14 +133,14 @@ class Game:
 
         best = "same" if same else None
         near_hits = matches = 0
+        best_shade = 0
         if number is not None:
             for token in self.words:
                 if token["revealed"] or token["number"] is None or token["number"][0] != number[0]:
                     continue
                 tier, score = text.number_tier(number[1], token["number"][1])
-                if not tier:
-                    continue
                 rank = TIER_RANK[tier]
+                best_shade = max(best_shade, _shade(tier, score))
                 if best is None or rank > TIER_RANK[best]:
                     best = tier
                 matches += 1
@@ -155,6 +155,7 @@ class Game:
                 if best is None or TIER_RANK[tier] > TIER_RANK[best]:
                     best = tier
                 rank = TIER_RANK[tier]
+                best_shade = max(best_shade, _word_shade(tier, score))
                 for token in self.words:
                     if token["revealed"] or token["text"].lower() != target:
                         continue
@@ -163,7 +164,7 @@ class Game:
                         token.update(near=word, near_rank=rank, near_score=score, shade=_word_shade(tier, score))
                         near_hits += 1
 
-        self.guesses[text.fold(word)] = {"word": word, "tier": best, "hits": len(same)}
+        self.guesses[text.fold(word)] = {"word": word, "tier": best, "hits": len(same), "shade": best_shade}
         self.other_name_left = {
             i for i in self.other_name_left if not guess_keys & text.keys(self.other_name[i], self.lang)
         }

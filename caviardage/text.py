@@ -195,15 +195,10 @@ def number_value(word, lang, guess=False):
 
 
 def number_tier(a, b):
-    """Tier and score of number a against number b, of the same kind. The closer, the higher."""
-    distance, size = abs(a - b), max(abs(a), abs(b))
-    limit = max(2, size * 0.10)
-    score = 1 - distance / (limit + 1)
-    if distance <= max(1, size * 0.01):
-        return "family", score
-    if distance <= limit:
-        return "scene", score
-    return None, 0.0
+    """Tier and score of number a against number b, of the same kind. Numbers are always comparable."""
+    distance, size = abs(a - b), max(abs(a), abs(b), 1)
+    score = 1 - distance / size
+    return ("family" if distance <= max(1, size * 0.01) else "scene"), score
 
 
 LEAD_NAME_RE = re.compile(r"^([^.:;()]{2,70}?)\s*\(([^)]{1,200})\)")

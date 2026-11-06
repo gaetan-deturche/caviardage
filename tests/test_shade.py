@@ -61,6 +61,15 @@ def test_message_counts_every_match_and_only_real_improvements():
     assert better["matches"] == 3 and better["near"] == 1
 
 
+def test_guess_list_records_how_close_a_guess_came():
+    g = game()
+    g.guess("direct")
+    g.guess("loin")
+    log = g.state()["log"]
+    assert log[0]["shade"] > log[1]["shade"] > 0
+    assert g.guess("zzzrien")["state"]["log"][-1]["shade"] == 0
+
+
 def test_shade_does_not_leak_the_hidden_word():
     state = str(game().guess("direct")["state"])
     assert "primate" not in state and "shade" in state
