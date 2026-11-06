@@ -35,7 +35,7 @@ To play together, share the round's code or link. Everyone plays the same page, 
 
 When a round ends, whether solved or given up, the words you hadn't found stay highlighted.
 
-Superscripts and subscripts are words of their own, as in `CO` + `2` or `XX` + `e`. Ordinal endings written without a superscript, as in `7th`, are split too.
+Punctuation and symbols, including `µ`, `°`, `º` and `①`, are always visible. Characters like `²`, `₂` and `Ⅳ` count as what they stand for, so `2` finds `²` and `IV` finds `Ⅳ`. Superscripts and subscripts are words of their own, as in `CO` + `2` or `XX` + `e`. Ordinal endings written without a superscript, as in `7th`, are split too.
 
 A close guess is written in the slot it's close to, and the closer it is, the whiter its text. Clicking a bar shows its letter count for 3 seconds, and in easy mode also how close the guess is, as a percentage. The hidden word itself stays hidden, and a closer guess replaces a weaker one.
 

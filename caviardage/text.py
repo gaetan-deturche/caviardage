@@ -11,7 +11,10 @@ import unicodedata
 
 from . import store
 
-WORD_RE = re.compile(r"[^\W_]+", re.UNICODE)
+# Letters and numbers. Signs that only look like them stay visible: the micro sign, the
+# degree-style º, and enclosed characters such as ① and Ⓐ.
+WORD_RE = re.compile(r"[^\W_µº\u2460-\u24FF\u2776-\u2793\u3248-\u324F\u3251-\u325F\u3280-\u32BF]+", re.UNICODE)
+FRACTION_SLASH = "\u2044"
 WORD_BREAK = "\u200b"  # Invisible. Marks a superscript or subscript edge, as in CO2 and XXe.
 SCRIPT_CHARACTERS_RE = re.compile(r"([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻₀₁₂₃₄₅₆₇₈₉₊₋ᵉʳᵈˢᵗʰⁿ]+)")
 
@@ -60,7 +63,8 @@ STOPWORDS = {
 def fold(word):
     """Lowercase and remove accents: Été -> ete."""
     text = word.casefold().replace("œ", "oe").replace("æ", "ae")
-    return "".join(c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn")
+    # NFKD also turns ² and ₂ into 2, ᵉ into e, and Ⅳ into iv.
+    return "".join(c for c in unicodedata.normalize("NFKD", text) if unicodedata.category(c) != "Mn").casefold()
 
 
 def _known(word, lang):
@@ -127,6 +131,8 @@ def keys(word, lang):
     """The matching keys of a word."""
     lower = word.lower()
     out = {fold(lower)}
+    if FRACTION_SLASH in fold(lower):
+        out.update(fold(lower).split(FRACTION_SLASH))  # ½ matches 1 and 2.
     if lang == "fr" and lower in ELISIONS:
         out.add(fold(ELISIONS[lower]))
     out.update(fold(lemma) for lemma in lemmas(word, lang))
@@ -181,6 +187,7 @@ def number_value(word, lang, guess=False):
 
     The two kinds never match each other: X is not close to 9 or 10.
     """
+    word = unicodedata.normalize("NFKC", word)  # ² is the digit 2, and Ⅳ is the numeral IV.
     digits = DIGITS_RE.fullmatch(word)
     if digits:
         return ("digits", int(digits.group(1)))
