@@ -84,6 +84,7 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
 .slot.count { font: 600 .8em/1.55 var(--ui); }
 .shown.fresh { background: var(--same-bg); color: var(--same); font-weight: 600; border-radius: 2px; box-shadow: 0 0 0 1px var(--same-bg); }
 .gaveup .shown { color: var(--ink); }
+#text sup, #text sub, #title sup, #title sub { line-height: 0; }
 .shown.missed { background: var(--missed-bg); color: var(--missed-text); border-radius: 2px; box-shadow: 0 0 0 1px var(--missed-bg); }
 
 .side { position: sticky; top: 100px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; max-height: calc(100vh - 116px); overflow: auto; }
@@ -298,12 +299,13 @@ function makeSlot(token) {
 }
 
 function appendTo(parent, token) {
-  if (!token.word) { parent.append(token.text); return; }
+  const target = token.script ? parent.appendChild(document.createElement(token.script)) : parent;
+  if (!token.word) { target.append(token.text); return; }
   if (token.revealed) {
     const span = document.createElement("span");
     span.className = "shown" + (token.fresh ? " fresh" : "") + (token.missed ? " missed" : "");
     span.textContent = token.text;
-    parent.append(span);
+    target.append(span);
     return;
   }
   parent.append(makeSlot(token));

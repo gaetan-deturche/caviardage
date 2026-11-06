@@ -107,12 +107,11 @@ def test_fraction_parts_are_found_separately_and_get_closeness():
     state = g.guess("1")["state"]
     assert "2" not in shown(state) and "1" in shown(state)
     assert [t for t in state["tokens"] if t.get("near") == "1"]
-    assert "2" in shown(g.guess("2")["state"])
+    assert "½" in shown(g.guess("2")["state"])
 
 
-def test_typing_the_fraction_itself_reveals_its_numbers():
-    state = game().guess("½")["state"]
-    assert "1" in shown(state) and "2" in shown(state)
+def test_typing_the_fraction_itself_finds_it():
+    assert "½" in shown(game().guess("½")["state"])
 
 
 def test_symbols_are_visible_from_the_start():

@@ -71,16 +71,43 @@ class Game:
                 self.title_slots.append(token)
         self.tokens.append(token)
 
+    def _fraction_groups(self):
+        """{group: its word tokens} for each fraction on the page."""
+        groups = {}
+        for token in self.tokens:
+            if token.get("group") and token["word"]:
+                groups.setdefault(token["group"], []).append(token)
+        return groups
+
     def public_tokens(self):
+        groups = self._fraction_groups()
+        collapsed = set()
         out = []
         for token in self.tokens:
+            group = token.get("group")
+            words = groups.get(group)
+            if group and (self.finished or all(t["revealed"] for t in words)):
+                # Every part is known, so the fraction goes back to its short form.
+                if group not in collapsed:
+                    collapsed.add(group)
+                    out.append({
+                        "i": words[0]["i"], "word": True, "text": token["fraction"], "part": token["part"],
+                        "revealed": True, "missed": not all(t["revealed"] for t in words),
+                    })
+                continue
             if not token["word"]:
-                out.append({"i": token["i"] if "i" in token else None, "text": token["text"], "part": token["part"]})
+                visible = {"i": token["i"] if "i" in token else None, "text": token["text"], "part": token["part"]}
+                if token.get("script"):
+                    visible["script"] = token["script"]
+                out.append(visible)
             elif token["revealed"] or self.finished:
-                out.append({
+                found = {
                     "i": token["i"], "word": True, "text": token["text"], "part": token["part"],
                     "revealed": True, "missed": not token["revealed"],
-                })
+                }
+                if token.get("script"):
+                    found["script"] = token["script"]
+                out.append(found)
             else:
                 out.append({
                     "i": token["i"], "word": True, "length": len(token["text"]), "part": token["part"],

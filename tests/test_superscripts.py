@@ -40,7 +40,7 @@ def test_unicode_scripts_become_separate_words(sample, expected):
 
 def test_breaks_are_invisible_and_text_reads_the_same():
     plain = _plain_text("<p>Le CO<sub>2</sub> et le XX<sup>e</sup>.</p>").strip()
-    assert plain.replace(text.WORD_BREAK, "") == "Le CO2 et le XXe."
+    assert text.strip_marks(plain) == "Le CO2 et le XXe."
 
 
 def test_paragraphs_and_entities_survive():
@@ -61,7 +61,7 @@ def test_article_from_formatted_extract():
     words_html = "".join(f"mot{i} " for i in range(90))
     article = _to_article({"title": "Dioxyde (gaz)", "fullurl": "x", "extract": f"<p>Le CO<sub>2</sub> {words_html}</p>"})
     assert article["title"] == "Dioxyde"
-    assert text.WORD_BREAK in article["paragraphs"][0]
+    assert text.SUB_OPEN in article["paragraphs"][0]
 
 
 def test_each_part_is_guessed_separately():

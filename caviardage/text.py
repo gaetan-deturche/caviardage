@@ -15,7 +15,10 @@ from . import store
 # degree-style º, and enclosed characters such as ① and Ⓐ.
 WORD_RE = re.compile(r"[^\W_µº\u2460-\u24FF\u2776-\u2793\u3248-\u324F\u3251-\u325F\u3280-\u32BF]+", re.UNICODE)
 FRACTION_SLASH = "\u2044"
-WORD_BREAK = "\u200b"  # Invisible. Marks a superscript or subscript edge, as in CO2 and XXe.
+WORD_BREAK = "\u200b"  # Invisible word edge, kept for rounds saved before the marks below.
+# Invisible marks around superscripts and subscripts, as in XXe and CO2.
+SUP_OPEN, SUP_CLOSE, SUB_OPEN, SUB_CLOSE = "\ue000", "\ue001", "\ue002", "\ue003"
+MARKS_RE = re.compile("([\ue000-\ue003\u200b])")
 SCRIPT_CHARACTERS_RE = re.compile(r"([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻₀₁₂₃₄₅₆₇₈₉₊₋ᵉʳᵈˢᵗʰⁿ]+)")
 
 # French elided forms keep their full word's identity: guessing "de" reveals d'.
@@ -221,7 +224,7 @@ def other_name(title, first_paragraph, lang):
     "Les mollusques (Mollusca) sont..." gives ["mollusques"] for the title Mollusca.
     Returns the words of that name, or [] when the article doesn't open this way.
     """
-    match = LEAD_NAME_RE.match(first_paragraph.replace(WORD_BREAK, ""))
+    match = LEAD_NAME_RE.match(strip_marks(first_paragraph))
     if not match:
         return []
     position = fold(match.group(2)).find(fold(title))
@@ -265,24 +268,60 @@ def ordinal_ending(word):
 FRACTION_RE = re.compile(r"(\d?)([¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞↉⅟])")
 
 
-def _write_fraction(match):
-    """½ reads as 1/2, and 3½ as 3 1/2 so it can't be mistaken for 31/2."""
-    written = unicodedata.normalize("NFKC", match.group(2)).replace(FRACTION_SLASH, "/")
-    return f"{match.group(1)} {written}" if match.group(1) else written
+def strip_marks(text):
+    return MARKS_RE.sub("", text)
+
+
+def _plain_tokens(text, state):
+    """Words and everything between them. state["script"] tracks superscripts and subscripts."""
+    tokens = []
+
+    def add(word, value, script):
+        token = {"word": word, "text": value}
+        if script:
+            token["script"] = script
+        tokens.append(token)
+
+    def add_between(chunk):
+        for piece in MARKS_RE.split(chunk):
+            if piece in (SUP_OPEN, SUB_OPEN):
+                state["script"] = "sup" if piece == SUP_OPEN else "sub"
+            elif piece in (SUP_CLOSE, SUB_CLOSE):
+                state["script"] = None
+            elif piece and piece != WORD_BREAK:
+                add(False, piece, state["script"])
+
+    position = 0
+    for match in WORD_RE.finditer(text):
+        add_between(text[position:match.start()])
+        for piece in SCRIPT_CHARACTERS_RE.split(match.group()):
+            if piece:
+                parts = split_ordinal(piece)
+                if parts:
+                    add(True, parts[0], state["script"])
+                    add(True, parts[1], state["script"] or "sup")
+                else:
+                    add(True, piece, state["script"])
+        position = match.end()
+    add_between(text[position:])
+    return tokens
 
 
 def tokenize(text):
-    """Split text into [{"word": bool, "text": str}], keeping everything else as is."""
-    text = FRACTION_RE.sub(_write_fraction, text)
-    tokens, position = [], 0
-    for match in WORD_RE.finditer(text):
-        if match.start() > position:
-            tokens.append({"word": False, "text": text[position:match.start()]})
-        for piece in SCRIPT_CHARACTERS_RE.split(match.group()):
-            if piece:
-                for part in split_ordinal(piece) or (piece,):
-                    tokens.append({"word": True, "text": part})
+    """Split text into [{"word": bool, "text": str}], keeping everything else as is.
+
+    A word in a superscript or subscript also has "script". The parts of a fraction such as ½
+    have "fraction" set to the short form, and "group" to tell one fraction from the next.
+    """
+    tokens, state, position, group = [], {"script": None}, 0, 0
+    for match in FRACTION_RE.finditer(text):
+        before_end = match.start(2)
+        tokens += _plain_tokens(text[position:before_end], state)
+        written = unicodedata.normalize("NFKC", match.group(2)).replace(FRACTION_SLASH, "/")
+        group += 1
+        spaced = (" " + written) if match.group(1) else written
+        for token in _plain_tokens(spaced, state):
+            tokens.append({**token, "fraction": match.group(2), "group": group})
         position = match.end()
-    if position < len(text):
-        tokens.append({"word": False, "text": text[position:]})
+    tokens += _plain_tokens(text[position:], state)
     return tokens

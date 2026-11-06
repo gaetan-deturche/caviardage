@@ -47,7 +47,7 @@ class _ArticleText(HTMLParser):
         if tag in self.SKIPPED:
             self.skipping += 1
         elif tag in ("sup", "sub"):
-            self.parts.append(text.WORD_BREAK)
+            self.parts.append(text.SUP_OPEN if tag == "sup" else text.SUB_OPEN)
         elif tag in self.BLOCKS:
             self.parts.append("\n")
 
@@ -55,7 +55,7 @@ class _ArticleText(HTMLParser):
         if tag in self.SKIPPED:
             self.skipping = max(0, self.skipping - 1)
         elif tag in ("sup", "sub"):
-            self.parts.append(text.WORD_BREAK)
+            self.parts.append(text.SUP_CLOSE if tag == "sup" else text.SUB_CLOSE)
         elif tag in self.BLOCKS:
             self.parts.append("\n")
 
