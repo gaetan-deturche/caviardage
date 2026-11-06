@@ -14,7 +14,7 @@
   --same: #1f7a4d; --same-bg: #d5ecdf;
   --family: #b4540f; --family-bg: #f8dcc2; --family-text: #6e3105;
   --scene: #8f7600; --scene-bg: #f5ecb0; --scene-text: #554600;
-  --stamp: #a32638; --family-line: #c75b10; --scene-line: #c9a400;
+  --missed-bg: #d6dee3; --missed-text: #4a5a64; --stamp: #a32638; --family-line: #c75b10; --scene-line: #c9a400;
   --type: "Special Elite", "Courier New", monospace;
   --body: "Source Serif 4", Georgia, serif;
   --ui: "Barlow Semi Condensed", "Arial Narrow", Arial, sans-serif;
@@ -26,7 +26,7 @@
     --same: #63c994; --same-bg: #173c2a;
     --family: #f0a062; --family-bg: #4d2a10; --family-text: #fbd7b8;
     --scene: #dcc54b; --scene-bg: #423a0b; --scene-text: #f1e596;
-    --stamp: #e86a7d; --family-line: #e8772a; --scene-line: #d8b400;
+    --missed-bg: #33424c; --missed-text: #c2ccd2; --stamp: #e86a7d; --family-line: #e8772a; --scene-line: #d8b400;
     color-scheme: dark;
   }
 }
@@ -88,6 +88,7 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
 .slot.count { font: 600 .8em/1.55 var(--ui); }
 .shown.fresh { background: var(--same-bg); color: var(--same); font-weight: 600; border-radius: 2px; box-shadow: 0 0 0 1px var(--same-bg); }
 .gaveup .shown { color: var(--ink); }
+.shown.missed { background: var(--missed-bg); color: var(--missed-text); border-radius: 2px; box-shadow: 0 0 0 1px var(--missed-bg); }
 
 .side { position: sticky; top: 100px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; max-height: calc(100vh - 116px); overflow: auto; }
 .card { background: var(--paper); border: 1px solid var(--line); border-radius: 3px; padding: 14px 16px; font-family: var(--ui); font-size: 15px; line-height: 1.4; }
@@ -165,7 +166,7 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
 <script>
 const COPY = {
   fr: {
-    easy: "Mode facile : voir le % en cliquant sur une barre", far: "loin", close: "proche", percent: n => `${n} %`, closeLabel: (n, word) => `« ${word} » est proche à ${n} %`, team: "À plusieurs", teamHint: "Partagez ce code : vos amis jouent la même page, et chaque mot trouvé apparaît chez tout le monde.", joinHint: "Code d'un ami", joinSend: "Rejoindre", noCode: "Ce code ne correspond à aucune partie. Vérifiez-le auprès de votre ami.", others: n => `${n} nouvel${n > 1 ? "s" : ""} essai${n > 1 ? "s" : ""} d'un autre joueur.`, share: "Copier le lien", copied: "Lien copié. Ouvrez-le n'importe où pour reprendre cette partie.", gone: "Cette partie est introuvable. Voici une nouvelle page.", famous: "Pages très connues", wide: "Pages connues", deep: "100 000 pages (difficile)", next: "Nouvelle page", giveup: "Abandonner", sure: "Confirmer l'abandon",
+    easy: "Mode facile : voir le % en cliquant sur une barre", far: "loin", close: "proche", percent: n => `${n} %`, closeLabel: (n, word) => `« ${word} » est proche à ${n} %`, missedSample: "Surlignés", missedNote: ": les mots que vous n'aviez pas trouvés.", team: "À plusieurs", teamHint: "Partagez ce code : vos amis jouent la même page, et chaque mot trouvé apparaît chez tout le monde.", joinHint: "Code d'un ami", joinSend: "Rejoindre", noCode: "Ce code ne correspond à aucune partie. Vérifiez-le auprès de votre ami.", others: n => `${n} nouvel${n > 1 ? "s" : ""} essai${n > 1 ? "s" : ""} d'un autre joueur.`, share: "Copier le lien", copied: "Lien copié. Ouvrez-le n'importe où pour reprendre cette partie.", gone: "Cette partie est introuvable. Voici une nouvelle page.", famous: "Pages très connues", wide: "Pages connues", deep: "100 000 pages (difficile)", next: "Nouvelle page", giveup: "Abandonner", sure: "Confirmer l'abandon",
     send: "Essayer", placeholder: "Un mot, sous n'importe quelle forme", count: "Essais", legend: "Couleurs", log: "Vos essais",
     same: "Même mot, quelle que soit la forme", family: "Lien direct (singe → primate)", scene: "Même domaine (roi → château)", none: "Pas de lien trouvé",
     loading: "Choix d'une page…", noPage: "Wikipédia n'a pas renvoyé de page. Attendez un instant, puis cliquez sur Nouvelle page.", dup: w => `Déjà essayé : ${w}.`, unknown: w => `« ${w} » n'est pas un mot connu. Cet essai ne compte pas.`,
@@ -176,7 +177,7 @@ const COPY = {
     letters: n => `${n}`, wordLabel: "Mot",
   },
   en: {
-    easy: "Easy mode: see the % when clicking a bar", far: "far", close: "close", percent: n => `${n}%`, closeLabel: (n, word) => `"${word}" is ${n}% close`, team: "Play together", teamHint: "Share this code: your friends play the same page, and every word found shows up for everyone.", joinHint: "A friend's code", joinSend: "Join", noCode: "That code doesn't match any game. Check it with your friend.", others: n => `${n} new guess${n > 1 ? "es" : ""} from another player.`, share: "Copy link", copied: "Link copied. Open it anywhere to continue this game.", gone: "This game wasn't found. Here's a new page.", famous: "Very famous pages", wide: "Well-known pages", deep: "100,000 pages (hard)", next: "New page", giveup: "Give up", sure: "Confirm giving up",
+    easy: "Easy mode: see the % when clicking a bar", far: "far", close: "close", percent: n => `${n}%`, closeLabel: (n, word) => `"${word}" is ${n}% close`, missedSample: "Highlighted", missedNote: "words are the ones you hadn't found.", team: "Play together", teamHint: "Share this code: your friends play the same page, and every word found shows up for everyone.", joinHint: "A friend's code", joinSend: "Join", noCode: "That code doesn't match any game. Check it with your friend.", others: n => `${n} new guess${n > 1 ? "es" : ""} from another player.`, share: "Copy link", copied: "Link copied. Open it anywhere to continue this game.", gone: "This game wasn't found. Here's a new page.", famous: "Very famous pages", wide: "Well-known pages", deep: "100,000 pages (hard)", next: "New page", giveup: "Give up", sure: "Confirm giving up",
     send: "Try", placeholder: "One word, in any form", count: "Guesses", legend: "Colours", log: "Your guesses",
     same: "Same word, in any form", family: "Direct link (monkey → primate)", scene: "Same area (rain → cloud)", none: "No link found",
     loading: "Picking a page…", noPage: "Wikipedia didn't return a page. Wait a moment, then click New page.", dup: w => `Already tried: ${w}.`, unknown: w => `"${w}" isn't a known word. This guess doesn't count.`,
@@ -303,7 +304,7 @@ function appendTo(parent, token) {
   if (!token.word) { parent.append(token.text); return; }
   if (token.revealed) {
     const span = document.createElement("span");
-    span.className = "shown" + (token.fresh ? " fresh" : "");
+    span.className = "shown" + (token.fresh ? " fresh" : "") + (token.missed ? " missed" : "");
     span.textContent = token.text;
     parent.append(span);
     return;
@@ -349,10 +350,16 @@ function render() {
     link.target = "_blank";
     link.rel = "noopener";
     link.textContent = c.read;
+    const legend = document.createElement("p");
+    legend.className = "credit";
+    const sample = document.createElement("span");
+    sample.className = "shown missed";
+    sample.textContent = c.missedSample;
+    legend.append(sample, ` ${c.missedNote}`);
     const credit = document.createElement("p");
     credit.className = "credit";
     credit.textContent = c.credit;
-    result.replaceChildren(head, name, link, credit);
+    result.replaceChildren(head, name, link, legend, credit);
   }
 }
 

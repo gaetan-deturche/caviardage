@@ -79,6 +79,33 @@ def test_win_needs_every_title_word():
     assert state["answer"]["title"] == "Pont de Brooklyn"
 
 
+def test_finished_round_marks_the_words_not_found():
+    game = new_game()
+    game.guess("est")
+    for word in ("pont", "de", "brooklyn"):
+        game.guess(word)
+    tokens = word_tokens(game.state())
+    assert game.state()["finished"]
+    found = {t["text"] for t in tokens if not t["missed"]}
+    missed = {t["text"] for t in tokens if t["missed"]}
+    assert {"Pont", "de", "Brooklyn", "est", "était"} <= found
+    assert {"primate", "York"} <= missed
+
+
+def test_give_up_marks_only_unfound_words_as_missed():
+    game = new_game()
+    game.guess("pont")
+    tokens = word_tokens(game.give_up())
+    assert not [t for t in tokens if t["text"] == "pont" and t["missed"]]
+    assert [t for t in tokens if t["text"] == "primate" and t["missed"]]
+
+
+def test_missed_is_not_sent_before_the_end():
+    game = new_game()
+    game.guess("pont")
+    assert not [t for t in word_tokens(game.state()) if t.get("missed")]
+
+
 def test_give_up_shows_everything():
     state = new_game().give_up()
     assert state["gaveUp"] and all(t.get("revealed") for t in word_tokens(state))

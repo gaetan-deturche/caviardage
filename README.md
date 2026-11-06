@@ -34,6 +34,8 @@ To put it behind nginx under a sub-URL, see `deploy/`. The app only listens on 1
 Each round has its own link, shown in the address bar. Reloading resumes the round, and opening the link on another computer continues it. Rounds are saved on the server and kept for 180 days after their last guess. 
 To play together, share the round's code or link. Everyone plays the same page, and each browser picks up other players' guesses within about 3 seconds.
 
+When a round ends, whether solved or given up, the words you hadn't found stay highlighted.
+
 A close guess is written in the slot it's close to, and the closer it is, the whiter its text. Clicking a bar shows its letter count for 3 seconds, and in easy mode also how close the guess is, as a percentage. The hidden word itself stays hidden, and a closer guess replaces a weaker one.
 
 A page is solved when every word of its title is found. If an article opens with a name followed by its title in parentheses, as in "Les mollusques (Mollusca) sont...", finding that name solves it too.

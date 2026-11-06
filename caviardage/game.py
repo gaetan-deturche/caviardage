@@ -77,7 +77,10 @@ class Game:
             if not token["word"]:
                 out.append({"i": token["i"] if "i" in token else None, "text": token["text"], "part": token["part"]})
             elif token["revealed"] or self.finished:
-                out.append({"i": token["i"], "word": True, "text": token["text"], "part": token["part"], "revealed": True})
+                out.append({
+                    "i": token["i"], "word": True, "text": token["text"], "part": token["part"],
+                    "revealed": True, "missed": not token["revealed"],
+                })
             else:
                 out.append({
                     "i": token["i"], "word": True, "length": len(token["text"]), "part": token["part"],
