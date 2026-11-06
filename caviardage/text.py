@@ -62,12 +62,13 @@ def fold(word):
 
 
 def _known(word, lang):
-    return store.lemma(lang, word) is not None
+    """In either word list. Some words, like relativité, are only in the word vectors."""
+    return store.lemma(lang, word) is not None or store.vector_index(lang, word) is not None
 
 
 def _accent_variants(word, lang):
     """Known spellings of an unaccented French word: etait -> était."""
-    if lang != "fr" or word != fold(word) or _known(word, lang):
+    if lang != "fr" or word != fold(word) or store.lemma(lang, word) is not None:
         return []
     slots = [i for i, c in enumerate(word) if c in ACCENTS]
     if len(slots) > MAX_ACCENT_SLOTS:
@@ -95,10 +96,14 @@ def _plural_lemma(word, lang):
     for ending in ("s", "x", "es"):
         if word.endswith(ending):
             singular = word[: -len(ending)]
+            if ending == "x" and not singular.endswith("u"):
+                continue  # French -x plurals follow -u: bijoux, feux.
             for spelling in [singular] + _accent_variants(singular, lang):
                 found = store.lemma(lang, spelling)
                 if found:
                     return found
+                if _known(spelling, lang):
+                    return spelling
     return None
 
 

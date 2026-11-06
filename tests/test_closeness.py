@@ -34,6 +34,7 @@ def test_kinds_of_a_category_are_close_however_far_up(closeness, a, b, lang):
 
 def test_plural_missing_from_the_word_list_still_gets_closeness(closeness):
     assert closeness.score("relativités", "relativité", "fr") > 0.99
+    assert closeness.score("relativite", "relativité", "fr") > 0.99
 
 
 def test_pangolin_is_not_family(closeness):

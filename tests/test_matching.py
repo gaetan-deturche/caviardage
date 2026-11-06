@@ -44,6 +44,7 @@ def test_english_stays_separate(guess, word):
 
 
 @pytest.mark.parametrize("word,lemma,lang", [
+    ("relativité", "relativité", "fr"), ("relativite", "relativité", "fr"), ("RELATIVITE", "relativité", "fr"),
     ("relativités", "relativité", "fr"), ("relativites", "relativité", "fr"), ("Relativités", "relativité", "fr"),
 ])
 def test_plurals_missing_from_the_word_list_are_known(word, lemma, lang):
@@ -51,7 +52,7 @@ def test_plurals_missing_from_the_word_list_are_known(word, lemma, lang):
     assert lemma in text.lemmas(word, lang)
 
 
-@pytest.mark.parametrize("guess,word", [("relativités", "relativité"), ("relativité", "relativités"), ("relativites", "relativité")])
+@pytest.mark.parametrize("guess,word", [("relativités", "relativité"), ("relativité", "relativités"), ("relativites", "relativité"), ("relativite", "relativité"), ("relativite", "relativités")])
 def test_those_plurals_match_their_singular(guess, word):
     assert matches(guess, word, "fr")
 

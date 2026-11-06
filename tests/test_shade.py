@@ -7,7 +7,7 @@ from caviardage.game import Game, _shade, _word_shade
 class Scores:
     SCORES = {
         ("loin", "primate"): ("scene", 0.21), ("mieux", "primate"): ("scene", 0.38),
-        ("direct", "primate"): ("family", 0.45), ("tres", "primate"): ("family", 0.85),
+        ("direct", "primate"): ("family", 0.45), ("exact", "primate"): ("family", 0.85),
         ("faible", "primate"): ("family", 0.12), ("mieux", "marbre"): ("scene", 0.3),
     }
 
@@ -40,7 +40,7 @@ def test_closer_word_is_whiter():
     far = slots(g.guess("loin")["state"], "loin")[0]["shade"]
     near = slots(g.guess("mieux")["state"], "mieux")[0]["shade"]
     direct = slots(g.guess("direct")["state"], "direct")[0]["shade"]
-    best = slots(g.guess("tres")["state"], "tres")[0]["shade"]
+    best = slots(g.guess("exact")["state"], "exact")[0]["shade"]
     assert far < near < direct < best == 1
 
 
