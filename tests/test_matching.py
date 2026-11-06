@@ -15,6 +15,9 @@ def matches(guess, word, lang):
     ("etat", "État"), ("ETAT", "état"),
     ("grand", "grandes"), ("primate", "primates"), ("pont", "ponts"), ("oeil", "yeux"), ("cheval", "chevaux"),
     ("suis", "suivre"), ("suis", "être"), ("de", "d"), ("le", "l"),
+    ("de", "du"), ("du", "de"), ("de", "des"), ("des", "de"), ("le", "du"), ("du", "le"), ("le", "des"),
+    ("le", "au"), ("au", "le"), ("le", "aux"), ("à", "au"), ("a", "au"), ("au", "à"), ("à", "aux"), ("aux", "à"),
+    ("un", "des"), ("des", "un"), ("la", "du"),
 ])
 def test_french_matches(guess, word):
     assert matches(guess, word, "fr")

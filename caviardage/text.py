@@ -27,6 +27,11 @@ AMBIGUOUS = {
         "vis": ["vivre", "voir"],
         "vit": ["vivre", "voir"],
         "été": ["être", "été"],
+        # Contractions match both of their parts: du is de + le.
+        "du": ["de", "le"],
+        "des": ["de", "le", "un"],
+        "au": ["à", "le"],
+        "aux": ["à", "le"],
     },
     "en": {"saw": ["see", "saw"], "left": ["leave", "left"], "found": ["find", "found"]},
 }
