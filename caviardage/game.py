@@ -30,6 +30,11 @@ class Game:
 
         self.words = [t for t in self.tokens if t["word"]]
         self.targets = {t["text"].lower() for t in self.words if not text.is_stopword(t["text"], lang)}
+        for index, token in enumerate(self.tokens):
+            if token["word"]:
+                following = self.tokens[index + 1]["text"] if index + 1 < len(self.tokens) else ""
+                elided = following[:1] in ("'", "’")  # D' and L' are not Roman numerals.
+                token["number"] = None if elided else text.number_value(token["text"], lang)
 
     def _add(self, token, part):
         token = {**token, "part": part, "i": len(self.tokens)}
@@ -80,8 +85,14 @@ class Game:
         if text.fold(word) in self.guesses:
             return {"error": "duplicate", "word": word}
 
-        same = [t for t in self.words if t["text"].lower() == word.lower() or guess_keys & text.keys(t["text"], self.lang)]
-        if not same and not self._known(word):
+        number = text.number_value(word, self.lang, guess=True)
+        same = [
+            t for t in self.words
+            if t["text"].lower() == word.lower()
+            or guess_keys & text.keys(t["text"], self.lang)
+            or (number is not None and t["number"] == number)
+        ]
+        if not same and number is None and not self._known(word):
             return {"error": "unknown", "word": word}
 
         for token in same:
@@ -89,7 +100,20 @@ class Game:
 
         best = "same" if same else None
         near_hits = 0
-        if not text.is_stopword(word, self.lang):
+        if number is not None:
+            for token in self.words:
+                if token["revealed"] or token["number"] is None or token["number"][0] != number[0]:
+                    continue
+                tier, score = text.number_tier(number[1], token["number"][1])
+                if not tier:
+                    continue
+                rank = TIER_RANK[tier]
+                if best is None or rank > TIER_RANK[best]:
+                    best = tier
+                if (rank, score) > (token["near_rank"], token["near_score"]):
+                    token.update(near=word, near_rank=rank, near_score=score)
+                    near_hits += 1
+        elif not text.is_stopword(word, self.lang):
             for target in self.targets:
                 tier, score = self.closeness.tier(word, target, self.lang)
                 if not tier:

@@ -133,6 +133,56 @@ def is_stopword(word, lang):
     return store.is_common(lang, lower)
 
 
+ORDINAL = r"(?:er|re|ère|ème|eme|es|e|ᵉʳ|ʳᵉ|ᵉ|st|nd|rd|th)?"
+DIGITS_RE = re.compile(r"(\d{1,15})" + ORDINAL)
+ROMAN_WORD_RE = re.compile(r"([IVXLCDM]+)" + ORDINAL)
+LOWER_ROMAN_RE = re.compile(r"([ivx]+)" + ORDINAL)
+ROMAN_RE = re.compile(r"M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})")
+ROMAN_VALUES = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100, "D": 500, "M": 1000}
+
+
+def _roman(body, lang):
+    if not ROMAN_RE.fullmatch(body):
+        return None
+    # Single letters and short acronyms are usually not numbers: English I, D', CD, MC.
+    if (lang == "en" and body == "I") or (set(body) - set("IVX") and len(body) < 3):
+        return None
+    total = 0
+    for letter, following in zip(body, body[1:] + "I"):
+        value = ROMAN_VALUES[letter]
+        total += -value if value < ROMAN_VALUES[following] else value
+    return ("roman", total)
+
+
+def number_value(word, lang, guess=False):
+    """("digits", 1883) for 1883 or 1er, ("roman", 19) for XIXe, None for dix or vie.
+
+    The two kinds never match each other: X is not close to 9 or 10.
+    """
+    digits = DIGITS_RE.fullmatch(word)
+    if digits:
+        return ("digits", int(digits.group(1)))
+    roman = ROMAN_WORD_RE.fullmatch(word)
+    if roman:
+        return _roman(roman.group(1), lang)
+    if guess and store.lemma(lang, word.lower()) is None:
+        lower = LOWER_ROMAN_RE.fullmatch(word.lower())
+        if lower:
+            return _roman(lower.group(1).upper(), lang)
+    return None
+
+
+def number_tier(a, b):
+    """Tier and score of number a against number b, of the same kind. The closer, the higher."""
+    distance, size = abs(a - b), max(abs(a), abs(b))
+    score = 1 / (1 + distance)
+    if distance <= max(1, size * 0.01):
+        return "family", score
+    if distance <= max(2, size * 0.10):
+        return "scene", score
+    return None, 0.0
+
+
 def tokenize(text):
     """Split text into [{"word": bool, "text": str}], keeping everything else as is."""
     tokens, position = [], 0

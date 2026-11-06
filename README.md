@@ -29,6 +29,7 @@ To put it behind nginx under a sub-URL, see `deploy/`. The app only listens on 1
 - **Matching (green):** accents, capitals and word forms don't matter. `est`, `était`, `fut` and `être` all reveal each other, and `a` matches `à`.
 - **Direct link (orange):** a family link, such as monkey and primate, or a very strong association.
 - **Same area (yellow):** the same broad category or setting, such as pangolin and primate, or roi and château.
+- **Numbers:** compared by value, but only with their own kind: digits with digits and Roman numerals with Roman numerals, so `XIX` matches `XIXe` but not `19`. Numbers within about 1% are orange and within about 10% are yellow, and the closest guess stays in the slot.
 
 A close guess is written in the slot it's close to. The hidden word itself stays hidden, and a closer guess replaces a weaker one. Clicking a bar shows its letter count.
 
