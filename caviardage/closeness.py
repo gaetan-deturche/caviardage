@@ -24,6 +24,7 @@ WORDNET_MIN_SCORE = 0.10  # A WordNet link needs some support, to skip wrong sen
 WORDNET_SCENE_MIN_SCORE = 0.15  # Sharing a broad parent is easier to hit by accident, so it needs more.
 FAMILY_GROUP_SIZE = 400  # Sharing a parent only counts if that parent is specific.
 SCENE_GROUP_SIZE = 5000
+SAME_VERB_SCORE = 0.9  # compter against comptant: the same verb, filed apart by the word list.
 
 
 class Closeness:
@@ -84,6 +85,8 @@ class Closeness:
     def tier(self, a, b, lang):
         """Tier and score of guess a against article word b."""
         score = self.score(a, b, lang)
+        if text.related_forms(a, lang) & text.related_forms(b, lang):
+            return "family", max(score, SAME_VERB_SCORE)
         tier = "family" if score >= FAMILY_SCORE else "scene" if score >= SCENE_SCORE else None
         if tier != "family" and score >= KIND_OF_MIN_SCORE:
             linked = self._wordnet_tier(a, b, lang) if score >= WORDNET_MIN_SCORE else None

@@ -25,6 +25,7 @@ def test_french_matches(guess, word):
 
 @pytest.mark.parametrize("guess,word", [
     ("mer", "mère"), ("pont", "mer"), ("est", "pont"), ("mais", "mai"), ("pain", "pont"),
+    ("compter", "comptant"), ("voler", "volant"), ("aimer", "aimant"),  # Only very close: see test_closeness.
 ])
 def test_french_stays_separate(guess, word):
     assert not matches(guess, word, "fr")

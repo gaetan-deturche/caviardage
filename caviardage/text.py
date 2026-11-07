@@ -116,6 +116,19 @@ def _plural_lemma(word, lang):
     return None
 
 
+# -ant words whose -ait form belongs to an unrelated verb: avant is not a form of avoir.
+NOT_PARTICIPLES = {"avant", "devant", "savant", "méchant", "garant", "surfant"}
+
+
+def _participle_verb(word, lang):
+    """The verb of a French present participle the word list files as an adjective: comptant -> compter.
+
+    The verb is found through the -ait form of the same stem: comptait -> compter."""
+    if lang != "fr" or not word.endswith("ant") or len(word) < 5 or word in NOT_PARTICIPLES:
+        return None
+    return store.lemma(lang, word[:-3] + "ait")
+
+
 def lemmas(word, lang):
     """Every base form a word could have, most likely first."""
     lower = word.lower()
@@ -127,6 +140,21 @@ def lemmas(word, lang):
             if lemma not in found:
                 found.append(lemma)
     return tuple(found)
+
+
+@functools.lru_cache(maxsize=4000)
+def related_forms(word, lang):
+    """The base forms, plus the verb of an -ant word: comptant -> {comptant, compter}.
+
+    Kept apart from lemmas, because many -ant words became words of their own:
+    a volant is not a form of voler, so voler should only come close to it, not reveal it."""
+    lower = word.lower()
+    forms = set(lemmas(word, lang))
+    for spelling in [lower] + _accent_variants(lower, lang):
+        verb = _participle_verb(spelling, lang)
+        if verb:
+            forms.add(verb)
+    return frozenset(forms)
 
 
 @functools.lru_cache(maxsize=4000)

@@ -37,6 +37,22 @@ def test_plural_missing_from_the_word_list_still_gets_closeness(closeness):
     assert closeness.score("relativite", "relativité", "fr") > 0.99
 
 
+@pytest.mark.parametrize("a,b", [
+    ("compter", "comptant"), ("comptant", "compter"), ("comptait", "comptant"), ("comptant", "comptera"),
+    ("chanter", "chantant"), ("marcher", "marchant"), ("suivre", "suivant"), ("courir", "courant"),
+    ("finir", "finissant"), ("manger", "mangeant"), ("commencer", "commençant"), ("voler", "volant"),
+])
+def test_an_ant_word_is_very_close_to_its_verb(closeness, a, b):
+    assert closeness.tier(a, b, "fr") == ("family", pytest.approx(max(0.9, closeness.score(a, b, "fr"))))
+
+
+@pytest.mark.parametrize("a,b", [
+    ("avoir", "avant"), ("devoir", "devant"), ("savoir", "savant"), ("garer", "garant"), ("enfer", "enfant"),
+])
+def test_ant_words_that_are_not_participles_get_no_boost(closeness, a, b):
+    assert closeness.tier(a, b, "fr")[1] < 0.9
+
+
 def test_pangolin_is_not_family(closeness):
     assert closeness.tier("pangolin", "primate", "en")[0] == "scene"
 
