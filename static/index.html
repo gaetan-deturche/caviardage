@@ -163,7 +163,7 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
 <script>
 const COPY = {
   fr: {
-    easy: "Mode facile : voir le % en cliquant sur une barre", far: "essai loin", close: "essai proche", percent: n => `${n} %`, closeLabel: (n, word) => `« ${word} » est proche à ${n} %`, missedSample: "Surlignés", missedNote: ": les mots que vous n'aviez pas trouvés.", team: "À plusieurs", teamHint: "Partagez ce code : vos amis jouent la même page, et chaque mot trouvé apparaît chez tout le monde.", joinHint: "Code d'un ami", joinSend: "Rejoindre", noCode: "Ce code ne correspond à aucune partie. Vérifiez-le auprès de votre ami.", others: n => `${n} nouvel${n > 1 ? "s" : ""} essai${n > 1 ? "s" : ""} d'un autre joueur.`, share: "Copier le lien", copied: "Lien copié. Ouvrez-le n'importe où pour reprendre cette partie.", gone: "Cette partie est introuvable. Voici une nouvelle page.", famous: "Pages très connues", wide: "Pages connues", deep: "100 000 pages (difficile)", next: "Nouvelle page", giveup: "Abandonner", sure: "Confirmer l'abandon",
+    easy: "Mode facile : voir le % en cliquant sur une barre", far: "essai loin", close: "essai proche", percent: n => `${n} %`, closeLabel: (n, word) => `« ${word} » est proche à ${n} %`, guessView: "Revoir la page cachée avec mes essais", missedSample: "Surlignés", missedNote: ": les mots que vous n'aviez pas trouvés.", team: "À plusieurs", teamHint: "Partagez ce code : vos amis jouent la même page, et chaque mot trouvé apparaît chez tout le monde.", joinHint: "Code d'un ami", joinSend: "Rejoindre", noCode: "Ce code ne correspond à aucune partie. Vérifiez-le auprès de votre ami.", others: n => `${n} nouvel${n > 1 ? "s" : ""} essai${n > 1 ? "s" : ""} d'un autre joueur.`, share: "Copier le lien", copied: "Lien copié. Ouvrez-le n'importe où pour reprendre cette partie.", gone: "Cette partie est introuvable. Voici une nouvelle page.", famous: "Pages très connues", wide: "Pages connues", deep: "100 000 pages (difficile)", next: "Nouvelle page", giveup: "Abandonner", sure: "Confirmer l'abandon",
     send: "Essayer", placeholder: "Un mot, sous n'importe quelle forme", count: "Essais", legend: "Couleurs", log: "Vos essais",
     same: "Mot trouvé, quelle que soit la forme", none: "Rien de proche",
     loading: "Choix d'une page…", noPage: "Wikipédia n'a pas renvoyé de page. Attendez un instant, puis cliquez sur Nouvelle page.", dup: w => `Déjà essayé : ${w}.`, unknown: w => `« ${w} » n'est pas un mot connu. Cet essai ne compte pas.`,
@@ -174,7 +174,7 @@ const COPY = {
     letters: n => `${n}`, wordLabel: "Mot",
   },
   en: {
-    easy: "Easy mode: see the % when clicking a bar", far: "guess far", close: "guess close", percent: n => `${n}%`, closeLabel: (n, word) => `"${word}" is ${n}% close`, missedSample: "Highlighted", missedNote: "words are the ones you hadn't found.", team: "Play together", teamHint: "Share this code: your friends play the same page, and every word found shows up for everyone.", joinHint: "A friend's code", joinSend: "Join", noCode: "That code doesn't match any game. Check it with your friend.", others: n => `${n} new guess${n > 1 ? "es" : ""} from another player.`, share: "Copy link", copied: "Link copied. Open it anywhere to continue this game.", gone: "This game wasn't found. Here's a new page.", famous: "Very famous pages", wide: "Well-known pages", deep: "100,000 pages (hard)", next: "New page", giveup: "Give up", sure: "Confirm giving up",
+    easy: "Easy mode: see the % when clicking a bar", far: "guess far", close: "guess close", percent: n => `${n}%`, closeLabel: (n, word) => `"${word}" is ${n}% close`, guessView: "Show the hidden page with my guesses", missedSample: "Highlighted", missedNote: "words are the ones you hadn't found.", team: "Play together", teamHint: "Share this code: your friends play the same page, and every word found shows up for everyone.", joinHint: "A friend's code", joinSend: "Join", noCode: "That code doesn't match any game. Check it with your friend.", others: n => `${n} new guess${n > 1 ? "es" : ""} from another player.`, share: "Copy link", copied: "Link copied. Open it anywhere to continue this game.", gone: "This game wasn't found. Here's a new page.", famous: "Very famous pages", wide: "Well-known pages", deep: "100,000 pages (hard)", next: "New page", giveup: "Give up", sure: "Confirm giving up",
     send: "Try", placeholder: "One word, in any form", count: "Guesses", legend: "Colours", log: "Your guesses",
     same: "Word found, in any form", none: "Nothing close",
     loading: "Picking a page…", noPage: "Wikipedia didn't return a page. Wait a moment, then click New page.", dup: w => `Already tried: ${w}.`, unknown: w => `"${w}" isn't a known word. This guess doesn't count.`,
@@ -194,6 +194,7 @@ const store = {
 
 let game = null, lang = store.get("cav-lang", "fr"), level = store.get("cav-level", "famous");
 let easy = store.get("cav-easy", "") === "1";
+let showGuessView = false;
 let queue = [], busy = false, confirming = false, countsShown = new Set(), known = new Set();
 const t = () => COPY[lang];
 
@@ -319,7 +320,8 @@ function render() {
   textEl.replaceChildren();
   textEl.classList.toggle("gaveup", game.gaveUp);
   let paragraph = document.createElement("p");
-  for (const token of game.tokens) {
+  const tokens = game.finished && showGuessView ? game.guessView : game.tokens;
+  for (const token of tokens) {
     if (token.part === "break") {
       if (paragraph.childNodes.length) textEl.append(paragraph);
       paragraph = document.createElement("p");
@@ -358,7 +360,21 @@ function render() {
     const credit = document.createElement("p");
     credit.className = "credit";
     credit.textContent = c.credit;
-    result.replaceChildren(head, name, link, legend, credit);
+    const view = document.createElement("label");
+    view.className = "easy";
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.id = "guessView";
+    box.checked = showGuessView;
+    box.addEventListener("change", () => {
+      showGuessView = box.checked;
+      render();
+    });
+    const viewText = document.createElement("span");
+    viewText.textContent = c.guessView;
+    view.append(box, viewText);
+    legend.hidden = showGuessView;
+    result.replaceChildren(head, name, link, view, legend, credit);
   }
 }
 
@@ -396,6 +412,7 @@ const gameLink = id => {
 
 // A resumed round shows what was already found without marking it all as new.
 function adopt(state, resumed) {
+  if (!game || game.id !== state.id) showGuessView = false;
   game = state;
   lang = state.lang;
   level = state.level;
@@ -438,6 +455,7 @@ async function start() {
 
 async function newGame() {
   game = null;
+  showGuessView = false;
   queue = []; busy = false; confirming = false; countsShown = new Set(); known = new Set();
   paintCopy();
   say("");

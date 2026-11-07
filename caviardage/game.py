@@ -79,14 +79,16 @@ class Game:
                 groups.setdefault(token["group"], []).append(token)
         return groups
 
-    def public_tokens(self):
+    def public_tokens(self, show_all=None):
+        """The page as a player sees it. show_all=False gives the hidden view, even after the end."""
+        show_all = self.finished if show_all is None else show_all
         groups = self._fraction_groups()
         collapsed = set()
         out = []
         for token in self.tokens:
             group = token.get("group")
             words = groups.get(group)
-            if group and (self.finished or all(t["revealed"] for t in words)):
+            if group and (show_all or all(t["revealed"] for t in words)):
                 # Every part is known, so the fraction goes back to its short form.
                 if group not in collapsed:
                     collapsed.add(group)
@@ -100,7 +102,7 @@ class Game:
                 if token.get("script"):
                     visible["script"] = token["script"]
                 out.append(visible)
-            elif token["revealed"] or self.finished:
+            elif token["revealed"] or show_all:
                 found = {
                     "i": token["i"], "word": True, "text": token["text"], "part": token["part"],
                     "revealed": True, "missed": not token["revealed"],
@@ -126,6 +128,7 @@ class Game:
         }
         if self.finished:
             payload["answer"] = self._finish_payload()
+            payload["guessView"] = self.public_tokens(show_all=False)
         return payload
 
     def give_up(self):

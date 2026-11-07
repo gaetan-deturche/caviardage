@@ -33,7 +33,7 @@ To put it behind nginx under a sub-URL, see `deploy/`. The app only listens on 1
 Each round has its own link, shown in the address bar. Reloading resumes the round, and opening the link on another computer continues it. Rounds are saved on the server and kept for 180 days after their last guess. 
 To play together, share the round's code or link. Everyone plays the same page, and each browser picks up other players' guesses within about 3 seconds.
 
-When a round ends, whether solved or given up, the words you hadn't found stay highlighted.
+When a round ends, whether solved or given up, the words you hadn't found stay highlighted, and a checkbox switches back to the hidden page with your closest guesses.
 
 Punctuation and symbols, including `µ`, `°`, `º` and `①`, are always visible. Characters like `²`, `₂` and `Ⅳ` count as what they stand for, so `2` finds `²` and `IV` finds `Ⅳ`. A fraction like `½` is shown as `1/2`, with its numbers hidden and the slash visible, and goes back to `½` once both numbers are found. Superscripts and subscripts are words of their own, as in `CO` + `2` or `XX` + `e`, and display as real ones once found. Ordinal endings written without a superscript, as in `7th`, are split too.
 
