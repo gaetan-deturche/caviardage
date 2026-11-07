@@ -15,6 +15,7 @@ PORT = 5180
 STATIC = Path(__file__).resolve().parent / "static"
 MAX_GAMES = 20  # Rounds kept in memory. Older ones are reloaded from disk when needed.
 GAME_ID = re.compile(r"[0-9a-f]{8}|[0-9a-f]{12}")
+PLAYER_ID = re.compile(r"[0-9a-f]{8}")
 
 app = Flask(__name__)
 closeness = Closeness()
@@ -45,6 +46,18 @@ def _game(game_id):
     return game
 
 
+def _player(value):
+    """A valid player code, in any case and with or without its dash, or None."""
+    player = re.sub(r"[^0-9a-f]", "", str(value or "").lower())
+    return player if PLAYER_ID.fullmatch(player) else None
+
+
+def _add_play(value, game):
+    player = _player(value)
+    if player:
+        saves.add_play(player, game.id)
+
+
 @app.get("/")
 def index():
     return send_from_directory(STATIC, "index.html")
@@ -62,6 +75,7 @@ def new_game():
     game = Game(article, lang, closeness, level=level)
     with lock:
         saves.save(game)
+        _add_play(body.get("player"), game)
         _remember(game)
         return jsonify(game.state())
 
@@ -76,7 +90,22 @@ def load_game(game_id):
         known = request.args.get("known", type=int)
         if known == len(game.guesses) and not game.finished:
             return jsonify({"same": True})
+        if known is None:
+            _add_play(request.args.get("player"), game)
         return jsonify(game.state())
+
+
+@app.get("/api/history/<player_id>")
+def history(player_id):
+    player = _player(player_id)
+    if not player:
+        return jsonify({"error": "invalid"}), 400
+    with lock:
+        for game_id in saves.unknown_status(player):
+            game = _game(game_id)
+            if game:
+                saves.set_finished(game.id, game.finished)
+        return jsonify({"player": player, "rounds": saves.history(player)})
 
 
 @app.post("/api/guess")
@@ -89,6 +118,7 @@ def guess():
         result = game.guess(str(body.get("word", "")))
         if "error" not in result:
             saves.save(game)
+            _add_play(body.get("player"), game)
         return jsonify(result)
 
 

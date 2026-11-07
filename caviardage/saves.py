@@ -1,4 +1,4 @@
-"""Saved rounds, so a reload, a server restart or another computer can resume them."""
+"""Saved rounds and who played them, so a reload, a restart or another computer can resume them."""
 import json
 import os
 import sqlite3
@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 
 KEEP_DAYS = 180
+HISTORY_LIMIT = 200
 DEFAULT_PATH = Path(__file__).resolve().parent.parent / "data" / "games.sqlite"
 
 
@@ -20,16 +21,26 @@ class Saves:
                 "CREATE TABLE IF NOT EXISTS games("
                 "id TEXT PRIMARY KEY, lang TEXT, level TEXT, article TEXT, guesses TEXT, gave_up INTEGER, updated REAL)"
             )
+            columns = [row[1] for row in self.db.execute("PRAGMA table_info(games)")]
+            if "finished" not in columns:
+                self.db.execute("ALTER TABLE games ADD COLUMN finished INTEGER")
+            self.db.execute(
+                "CREATE TABLE IF NOT EXISTS plays(player TEXT, game TEXT, PRIMARY KEY(player, game)) WITHOUT ROWID"
+            )
             self.db.execute("DELETE FROM games WHERE updated < ?", (time.time() - KEEP_DAYS * 86400,))
+            self.db.execute("DELETE FROM plays WHERE game NOT IN (SELECT id FROM games)")
 
     def save(self, game):
         row = (
             game.id, game.lang, game.level, json.dumps(game.article, ensure_ascii=False),
             json.dumps([g["word"] for g in game.guesses.values()], ensure_ascii=False),
-            int(game.gave_up), time.time(),
+            int(game.gave_up), time.time(), int(game.finished),
         )
         with self.lock, self.db:
-            self.db.execute("INSERT OR REPLACE INTO games VALUES (?,?,?,?,?,?,?)", row)
+            self.db.execute(
+                "INSERT OR REPLACE INTO games(id, lang, level, article, guesses, gave_up, updated, finished) "
+                "VALUES (?,?,?,?,?,?,?,?)", row,
+            )
 
     def load(self, game_id):
         """The saved round as a dict, or None."""
@@ -43,3 +54,37 @@ class Saves:
             "lang": row[0], "level": row[1], "article": json.loads(row[2]),
             "guesses": json.loads(row[3]), "gave_up": bool(row[4]),
         }
+
+    def add_play(self, player, game_id):
+        with self.lock, self.db:
+            self.db.execute("INSERT OR IGNORE INTO plays VALUES (?, ?)", (player, game_id))
+
+    def unknown_status(self, player):
+        """Rounds of this player saved before finished was recorded."""
+        with self.lock:
+            rows = self.db.execute(
+                "SELECT g.id FROM plays p JOIN games g ON g.id = p.game WHERE p.player=? AND g.finished IS NULL", (player,)
+            ).fetchall()
+        return [row[0] for row in rows]
+
+    def set_finished(self, game_id, finished):
+        """Record a round's status without counting as playing it."""
+        with self.lock, self.db:
+            self.db.execute("UPDATE games SET finished=? WHERE id=?", (int(finished), game_id))
+
+    def history(self, player):
+        """A player's rounds, newest first. The title stays hidden until a round is over."""
+        with self.lock:
+            rows = self.db.execute(
+                "SELECT g.id, g.lang, g.level, g.article, g.guesses, g.gave_up, g.finished, g.updated "
+                "FROM plays p JOIN games g ON g.id = p.game WHERE p.player=? ORDER BY g.updated DESC LIMIT ?",
+                (player, HISTORY_LIMIT),
+            ).fetchall()
+        out = []
+        for game_id, lang, level, article, guesses, gave_up, finished, updated in rows:
+            out.append({
+                "id": game_id, "lang": lang, "level": level, "count": len(json.loads(guesses)),
+                "finished": bool(finished), "gaveUp": bool(gave_up), "updated": updated,
+                "title": json.loads(article)["title"] if finished else None,
+            })
+        return out

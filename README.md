@@ -31,6 +31,8 @@ To put it behind nginx under a sub-URL, see `deploy/`. The app only listens on 1
 - **Numbers:** compared by value, but only with their own kind: digits with digits and Roman numerals with Roman numerals, so `XIX` matches `XIXe` but not `19`. Every number guess lights every number of its kind, however far away.
 
 Each round has its own link, shown in the address bar. Reloading resumes the round, and opening the link on another computer continues it. Rounds are saved on the server and kept for 180 days after their last guess. 
+The History panel lists a player's rounds, and a title only appears once its round is over. There are no accounts: each browser gets a player code, and entering it on another device shows the same history.
+
 To play together, share the round's code or link. Everyone plays the same page, and each browser picks up other players' guesses within about 3 seconds.
 
 When a round ends, whether solved or given up, the words you hadn't found stay highlighted, and a checkbox switches back to the hidden page with your closest guesses.
