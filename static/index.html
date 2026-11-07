@@ -12,7 +12,7 @@
   --desk: #c9d2d6; --paper: #f1f4f3; --ink: #1d2a33; --muted: #566670; --line: #b7c3c8;
   --bar: #141c22; --bar-text: #f1f4f3;
   --same: #1f7a4d; --same-bg: #d5ecdf;
-  --focus: #b4540f;
+  --focus: #b4540f; --lit: #d98a00;
   --missed-bg: #d6dee3; --missed-text: #4a5a64; --stamp: #a32638;
   --type: "Special Elite", "Courier New", monospace;
   --body: "Source Serif 4", Georgia, serif;
@@ -23,7 +23,7 @@
     --desk: #11181d; --paper: #1b252c; --ink: #e2e9ea; --muted: #9aaab2; --line: #33434d;
     --bar: #070b0e; --bar-text: #f1f4f3;
     --same: #63c994; --same-bg: #173c2a;
-    --focus: #f0a062;
+    --focus: #f0a062; --lit: #f2b84b;
     --missed-bg: #33424c; --missed-text: #c2ccd2; --stamp: #e86a7d;
     color-scheme: dark;
   }
@@ -70,6 +70,14 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
 #word { flex: 1; min-width: 0; font: 400 20px/1.2 var(--type); background: transparent; border: 0; border-bottom: 2px solid var(--ink); padding: 6px 4px; }
 .msg { min-height: 20px; margin: 3px 0 0; font: 500 14px/1.4 var(--ui); color: var(--muted); }
 .msg.bad { color: var(--stamp); }
+.msgrow { display: flex; gap: 8px; align-items: flex-start; }
+.msgrow .msg { flex: 1; min-width: 0; }
+.jump { flex: none; margin-top: 2px; padding: 2px 10px; font-size: 14px; background: var(--paper); border: 1px solid var(--lit); border-radius: 4px; cursor: pointer; }
+/* Bars the last guess lit or brought closer. */
+.slot.lit, .dot.lit { box-shadow: 0 0 0 2px var(--lit); }
+.dot.lit { background: var(--bar); }
+.slot.pulse { animation: pulse 1s ease-out 2; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px var(--lit); } }
 
 #title { font: 400 clamp(25px, 4vw, 36px)/1.45 var(--type); margin: 0 0 18px; padding-bottom: 12px; border-bottom: 1px dashed var(--line); text-wrap: balance; }
 #text p { margin: 0 0 16px; max-width: 72ch; overflow-wrap: anywhere; }
@@ -127,7 +135,7 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
       <input id="word" autocapitalize="off" spellcheck="false" aria-label="Mot">
       <button class="btn primary" id="send" type="submit"></button>
     </form>
-    <p id="msg" class="msg" role="status"></p>
+    <div class="msgrow"><p id="msg" class="msg" role="status"></p><button id="jump" class="jump" type="button" hidden></button></div>
   </div>
   <div class="scroller">
   <header class="top">
@@ -182,7 +190,7 @@ const COPY = {
   fr: {
     easy: "Mode facile : voir le % en cliquant sur une barre", far: "essai loin", close: "essai proche", percent: n => `${n} %`, closeLabel: (n, word) => `« ${word} » est proche à ${n} %`, guessView: "Revoir la page cachée avec mes essais", missedSample: "Surlignés", missedNote: ": les mots que vous n'aviez pas trouvés.", historyTitle: "Historique", historyEmpty: "Vos pages apparaîtront ici.", ongoing: "Page en cours", solved: "trouvée", gaveUp: "abandon", guesses: n => `${n} essai${n > 1 ? "s" : ""}`, playerLabel: "Votre code :", playerHint: "Entrez-le sur un autre appareil pour y retrouver votre historique.", playerPlaceholder: "Code d'un appareil", playerUse: "Utiliser", playerBad: "Ce code n'est pas valide : il faut 8 caractères, comme 7F3A-91C2.", playerDone: "Historique chargé. Cet appareil utilise maintenant ce code.", team: "À plusieurs", teamHint: "Partagez ce code : vos amis jouent la même page, et chaque mot trouvé apparaît chez tout le monde.", joinHint: "Code d'un ami", joinSend: "Rejoindre", noCode: "Ce code ne correspond à aucune partie. Vérifiez-le auprès de votre ami.", others: n => `${n} nouvel${n > 1 ? "s" : ""} essai${n > 1 ? "s" : ""} d'un autre joueur.`, share: "Copier le lien", copied: "Lien copié. Ouvrez-le n'importe où pour reprendre cette partie.", gone: "Cette partie est introuvable. Voici une nouvelle page.", famous: "Pages très connues", wide: "Pages connues", deep: "100 000 pages (difficile)", next: "Nouvelle page", giveup: "Abandonner", sure: "Confirmer l'abandon",
     send: "Essayer", placeholder: "Un mot, sous n'importe quelle forme", count: "Essais", legend: "Couleurs", log: "Vos essais",
-    same: "Mot trouvé, quelle que soit la forme", none: "Rien de proche",
+    same: "Mot trouvé, quelle que soit la forme", none: "Rien de proche", lit: "Encadré : touché ou amélioré par le dernier essai", jump: (a, n) => `Voir ${a}/${n}`,
     loading: "Choix d'une page…", noPage: "Wikipédia n'a pas renvoyé de page. Attendez un instant, puis cliquez sur Nouvelle page.", dup: w => `Déjà essayé : ${w}.`, unknown: w => `« ${w} » n'est pas un mot connu. Cet essai ne compte pas.`,
     invalid: "Entrez un seul mot.", nothing: w => `Rien de proche pour « ${w} ».`, expired: "Cette partie a expiré. Lancez une nouvelle page.", net: "Le serveur ne répond pas. Vérifiez qu'il tourne toujours.",
     hit: (w, n) => `${w} : ${n} mot${n > 1 ? "s" : ""} révélé${n > 1 ? "s" : ""}.`,
@@ -193,7 +201,7 @@ const COPY = {
   en: {
     easy: "Easy mode: see the % when clicking a bar", far: "guess far", close: "guess close", percent: n => `${n}%`, closeLabel: (n, word) => `"${word}" is ${n}% close`, guessView: "Show the hidden page with my guesses", missedSample: "Highlighted", missedNote: "words are the ones you hadn't found.", historyTitle: "History", historyEmpty: "Your pages will appear here.", ongoing: "Page in progress", solved: "solved", gaveUp: "gave up", guesses: n => `${n} guess${n > 1 ? "es" : ""}`, playerLabel: "Your code:", playerHint: "Enter it on another device to see your history there.", playerPlaceholder: "A device's code", playerUse: "Use", playerBad: "That code isn't valid: it needs 8 characters, like 7F3A-91C2.", playerDone: "History loaded. This device now uses this code.", team: "Play together", teamHint: "Share this code: your friends play the same page, and every word found shows up for everyone.", joinHint: "A friend's code", joinSend: "Join", noCode: "That code doesn't match any game. Check it with your friend.", others: n => `${n} new guess${n > 1 ? "es" : ""} from another player.`, share: "Copy link", copied: "Link copied. Open it anywhere to continue this game.", gone: "This game wasn't found. Here's a new page.", famous: "Very famous pages", wide: "Well-known pages", deep: "100,000 pages (hard)", next: "New page", giveup: "Give up", sure: "Confirm giving up",
     send: "Try", placeholder: "One word, in any form", count: "Guesses", legend: "Colours", log: "Your guesses",
-    same: "Word found, in any form", none: "Nothing close",
+    same: "Word found, in any form", none: "Nothing close", lit: "Outlined: lit or improved by the last guess", jump: (a, n) => `Show ${a}/${n}`,
     loading: "Picking a page…", noPage: "Wikipedia didn't return a page. Wait a moment, then click New page.", dup: w => `Already tried: ${w}.`, unknown: w => `"${w}" isn't a known word. This guess doesn't count.`,
     invalid: "Enter a single word.", nothing: w => `Nothing close to "${w}".`, expired: "This game expired. Start a new page.", net: "The server isn't responding. Check that it's still running.",
     hit: (w, n) => `${w}: ${n} word${n > 1 ? "s" : ""} revealed.`,
@@ -249,7 +257,7 @@ function paintCopy() {
   $("rampFar").textContent = c.far;
   $("rampClose").textContent = c.close;
   $("logLabel").textContent = c.log;
-  $("legend").replaceChildren(...["same", "none"].map(k => row(k, c[k])));
+  $("legend").replaceChildren(...["same", "lit", "none"].map(k => row(k, c[k])));
 }
 
 function row(tier, label, extra, shade) {
@@ -307,9 +315,13 @@ function makeSlot(token) {
     slot.style.setProperty("--shade", token.shade);
     if (percent !== null) slot.title = t().closeLabel(percent, token.near);
   }
+  const lit = marked.has(token.i);
+  slot.dataset.i = token.i;
+  if (lit) slot.classList.add("lit");
   if (shown) slot.classList.add("count");
   slot.textContent = shown
     ? (percent !== null ? `${t().letters(token.length)} · ${t().percent(percent)}` : t().letters(token.length))
+    : lit && percent !== null ? `${token.near} · ${t().percent(percent)}`
     : (token.near || " ");
   slot.addEventListener("click", () => {
     clearTimeout(countTimers.get(token.i));
@@ -406,6 +418,42 @@ function render() {
   }
 }
 
+// Bars a new guess lit for the first time or brought closer, closest first.
+let marked = new Map(), jumpAt = 0;
+
+function markCloser(before, after) {
+  const old = new Map();
+  if (before && before.id === after.id) for (const token of before.tokens) if (token.near) old.set(token.i, token.shade);
+  marked = new Map();
+  jumpAt = 0;
+  if (!after.finished) {
+    for (const token of after.tokens) {
+      if (token.near && !token.revealed && (!old.has(token.i) || token.shade > old.get(token.i) + 1e-9)) marked.set(token.i, token.shade);
+    }
+    marked = new Map([...marked].sort((a, b) => b[1] - a[1]));
+  }
+  paintJump();
+}
+
+function paintJump() {
+  $("jump").hidden = !marked.size;
+  if (marked.size) $("jump").textContent = t().jump(jumpAt % marked.size + 1, marked.size);
+}
+
+$("jump").addEventListener("click", () => {
+  const ids = [...marked.keys()];
+  if (!ids.length) return;
+  const slot = document.querySelector(`.slot[data-i="${ids[jumpAt % ids.length]}"]`);
+  jumpAt += 1;
+  paintJump();
+  if (!slot) return;
+  slot.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  slot.classList.remove("pulse");
+  void slot.offsetWidth;
+  slot.classList.add("pulse");
+  focusField();
+});
+
 function markFresh(state) {
   for (const token of state.tokens) {
     if (token.word && token.revealed) {
@@ -459,6 +507,7 @@ async function poll() {
     if (!response.ok) return;
     const state = await response.json();
     if (state.same || !game || game.id !== id || busy || game.count !== before) return;
+    markCloser(game, state);
     game = state;
     markFresh(game);
     render();
@@ -481,6 +530,8 @@ function adopt(state, resumed) {
   store.set("cav-lang", lang);
   store.set("cav-level", level);
   queue = []; busy = false; confirming = false; countsShown = new Set(); known = new Set();
+  marked = new Map();
+  paintJump();
   if (resumed) {
     for (const token of state.tokens) if (token.word && token.revealed) known.add(token.i);
   }
@@ -521,6 +572,8 @@ async function newGame() {
   game = null;
   showGuessView = false;
   queue = []; busy = false; confirming = false; countsShown = new Set(); known = new Set();
+  marked = new Map();
+  paintJump();
   paintCopy();
   say("");
   $("result").hidden = true;
@@ -565,6 +618,7 @@ async function drain() {
     else if (answer.error === "invalid") say(c.invalid, true);
     else if (answer.error === "expired") say(c.expired, true);
     else if (!answer.error) {
+      markCloser(game, answer.state);
       game = answer.state;
       markFresh(game);
       const parts = [];
@@ -632,6 +686,7 @@ $("giveup").addEventListener("click", async () => {
   try {
     const state = await post("api/giveup", { id: game.id });
     if (state.error) { say(t().expired, true); return; }
+    markCloser(game, state);
     game = state;
     markFresh(game);
     render();
