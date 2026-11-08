@@ -24,12 +24,16 @@ WORDNET_MIN_SCORE = 0.10  # A WordNet link needs some support, to skip wrong sen
 WORDNET_SCENE_MIN_SCORE = 0.15  # Sharing a broad parent is easier to hit by accident, so it needs more.
 FAMILY_GROUP_SIZE = 400  # Sharing a parent only counts if that parent is specific.
 SCENE_GROUP_SIZE = 5000
+# Parents too generic to link words: being "a kind of kind" relates espèce (a sort) to a rare
+# sense of couleur. Named by English words, since sense numbers change when the data is rebuilt.
+GENERIC_PARENT_WORDS = ("kind",)
 SAME_VERB_SCORE = 0.9  # compter against comptant: the same verb, filed apart by the word list.
 
 
 class Closeness:
     def __init__(self):
         self.matrix = np.load(ROOT / "data" / "numberbatch.npy", mmap_mode="r")
+        self.generic = {s for word in GENERIC_PARENT_WORDS for s in store.word_synsets("en", word)}
 
     def in_vocabulary(self, word, lang):
         return store.vector_index(lang, word.lower()) is not None
@@ -64,14 +68,14 @@ class Closeness:
         """True if the word is a kind of the category, however far up: a butterfly is an animal."""
         for lemma in text.lemmas(category_word, lang):
             for synset in store.word_synsets(lang, lemma):
-                if synset in ancestors_of_word and store.group_size(synset) <= SCENE_GROUP_SIZE:
+                if synset in ancestors_of_word and synset not in self.generic and store.group_size(synset) <= SCENE_GROUP_SIZE:
                     return True
         return False
 
     def _wordnet_tier(self, a, b, lang):
         ancestors_a, ancestors_b = self._ancestors(a, lang), self._ancestors(b, lang)
         best = None
-        for shared in ancestors_a.keys() & ancestors_b.keys():
+        for shared in (ancestors_a.keys() & ancestors_b.keys()) - self.generic:
             steps = ancestors_a[shared] + ancestors_b[shared]
             if steps > 3:
                 continue

@@ -53,6 +53,11 @@ def test_ant_words_that_are_not_participles_get_no_boost(closeness, a, b):
     assert closeness.tier(a, b, "fr")[1] < 0.9
 
 
+@pytest.mark.parametrize("a,b", [("couleur", "espèce"), ("sorte", "couleur"), ("couleur", "style"), ("marque", "modèle")])
+def test_being_a_kind_of_kind_is_no_family_link(closeness, a, b):
+    assert closeness.tier(a, b, "fr")[0] != "family"
+
+
 def test_pangolin_is_not_family(closeness):
     assert closeness.tier("pangolin", "primate", "en")[0] == "scene"
 
