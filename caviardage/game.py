@@ -246,33 +246,37 @@ class Game:
         title_found = self.title_slots and all(t["revealed"] for t in self.title_slots)
         if title_found or (self.other_name and not self.other_name_left):
             self.finished = True
-            # A title word shown by hints, not found, makes the round a give-up.
-            self.gave_up = self.gave_up or any(t["given"] for t in self.title_slots)
 
     def hint(self, index):
-        """Show one more letter of a hidden word. Its last letter reveals it, as given up."""
+        """Show one more letter of a hidden word. Its last letter reveals it, and for a title word gives up the page."""
         if self.finished:
             return {"error": "finished"}
         token = next((t for t in self.words if t["i"] == index), None)
         if token is None or token["revealed"]:
             return {"error": "invalid"}
-        letters, given = self.hint_word(token["text"].lower())
-        return {"letters": letters, "given": given, "state": self.state()}
+        letters, shown, gave_up = self.hint_word(token["text"].lower())
+        return {"letters": letters, "revealed": shown, "gaveUp": gave_up, "state": self.state()}
 
     def hint_word(self, key):
         """The hint itself, by lowercase word, so a saved round can replay it."""
         tokens = [t for t in self.words if t["text"].lower() == key and not t["revealed"]]
         if not tokens:
-            return 0, False
+            return 0, False, False
         letters = self.hints.get(key, 0) + 1
         self.hints[key] = letters
         self.hint_log.append((len(self.guesses), key))
-        given = letters >= len(tokens[0]["text"])
-        if given:
+        if letters < len(tokens[0]["text"]):
+            return letters, False, False
+        # The whole word is shown. A word of the text simply counts as revealed; a title word gives up the page.
+        if any(t["part"] == "title" for t in tokens):
             for token in tokens:
                 token.update(revealed=True, given=True)
-            self._check_end()
-        return letters, given
+            self.give_up()
+            return letters, True, True
+        for token in tokens:
+            token["revealed"] = True
+        self._check_end()
+        return letters, True, False
 
     def _known(self, word):
         return text.is_real_word(word, self.lang) or self.closeness.in_vocabulary(word, self.lang)

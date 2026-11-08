@@ -205,9 +205,9 @@ const COPY = {
     hit: (w, n) => `${w} : ${n} mot${n > 1 ? "s" : ""} révélé${n > 1 ? "s" : ""}.`,
     near: (w, n, up) => `${w} : proche de ${n} mot${n > 1 ? "s" : ""} (${up ? `${up} amélioré${up > 1 ? "s" : ""}` : "aucun amélioré"}).`,
     won: (n, h) => `Trouvé en ${n} essai${n > 1 ? "s" : ""}${h ? ` et ${h} indice${h > 1 ? "s" : ""}` : ""} !`, lost: (n, h) => `Abandon après ${n} essai${n > 1 ? "s" : ""}${h ? ` et ${h} indice${h > 1 ? "s" : ""}` : ""}.`,
-    hintNext: n => n === 1 ? "Indice : 1re lettre" : `Indice : ${n}e lettre`, hintLast: "Indice : dernière lettre", hintSure: "Confirmer : révéler le mot (abandon du mot)",
-    hintGiven: "Mot révélé par les indices : il compte comme abandonné.", hintShown: n => `Indice : ${n} lettre${n > 1 ? "s" : ""} montrée${n > 1 ? "s" : ""}.`,
-    hintsUsed: n => `${n} indice${n > 1 ? "s" : ""}`, given: "Mot révélé par indice, pas trouvé", hintHelp: "Indice : touchez une barre, puis le bouton Indice en haut pour voir sa lettre suivante. La dernière lettre révèle le mot, compté comme abandonné ; si c'est un mot du titre, la page comptera comme abandonnée.", read: "Lire la page sur Wikipédia", credit: "Texte : Wikipédia, licence CC BY-SA.",
+    hintNext: n => n === 1 ? "Indice : 1re lettre" : `Indice : ${n}e lettre`, hintLast: "Indice : dernière lettre", hintSure: "Confirmer : révéler ce mot du titre (abandon de la page)",
+    hintGaveUp: "Mot du titre révélé : la page compte comme abandonnée.", hintRevealed: "Mot révélé par les indices.", hintShown: n => `Indice : ${n} lettre${n > 1 ? "s" : ""} montrée${n > 1 ? "s" : ""}.`,
+    hintsUsed: n => `${n} indice${n > 1 ? "s" : ""}`, hintHelp: "Indice : touchez une barre, puis le bouton Indice en haut pour voir sa lettre suivante. La dernière lettre révèle le mot ; pour un mot du titre, la page compte comme abandonnée.", read: "Lire la page sur Wikipédia", credit: "Texte : Wikipédia, licence CC BY-SA.",
     letters: n => `${n}`, wordLabel: "Mot",
   },
   en: {
@@ -219,9 +219,9 @@ const COPY = {
     hit: (w, n) => `${w}: ${n} word${n > 1 ? "s" : ""} revealed.`,
     near: (w, n, up) => `${w}: close to ${n} word${n > 1 ? "s" : ""} (${up || "none"} improved).`,
     won: (n, h) => `Solved in ${n} guess${n > 1 ? "es" : ""}${h ? ` and ${h} hint${h > 1 ? "s" : ""}` : ""}!`, lost: (n, h) => `Gave up after ${n} guess${n > 1 ? "es" : ""}${h ? ` and ${h} hint${h > 1 ? "s" : ""}` : ""}.`,
-    hintNext: n => `Hint: letter ${n}`, hintLast: "Hint: last letter", hintSure: "Confirm: reveal the word (gives it up)",
-    hintGiven: "Word revealed by hints: it counts as given up.", hintShown: n => `Hint: ${n} letter${n > 1 ? "s" : ""} shown.`,
-    hintsUsed: n => `${n} hint${n > 1 ? "s" : ""}`, given: "Word revealed by a hint, not found", hintHelp: "Hints: tap a bar, then the Hint button at the top to see its next letter. The last letter reveals the word as given up; for a title word, the page counts as given up.", read: "Read the page on Wikipedia", credit: "Text: Wikipedia, CC BY-SA licence.",
+    hintNext: n => `Hint: letter ${n}`, hintLast: "Hint: last letter", hintSure: "Confirm: reveal this title word (gives up the page)",
+    hintGaveUp: "Title word revealed: the page counts as given up.", hintRevealed: "Word revealed by hints.", hintShown: n => `Hint: ${n} letter${n > 1 ? "s" : ""} shown.`,
+    hintsUsed: n => `${n} hint${n > 1 ? "s" : ""}`, hintHelp: "Hints: tap a bar, then the Hint button at the top to see its next letter. The last letter reveals the word; for a title word, the page counts as given up.", read: "Read the page on Wikipedia", credit: "Text: Wikipedia, CC BY-SA licence.",
     letters: n => `${n}`, wordLabel: "Word",
   },
 };
@@ -272,7 +272,7 @@ function paintCopy() {
   $("rampFar").textContent = c.far;
   $("rampClose").textContent = c.close;
   $("logLabel").textContent = c.log;
-  $("legend").replaceChildren(...["same", "lit", "given", "none"].map(k => row(k, c[k])));
+  $("legend").replaceChildren(...["same", "lit", "none"].map(k => row(k, c[k])));
   $("hintHelp").textContent = c.hintHelp;
   paintHint();
 }
@@ -522,11 +522,19 @@ function paintHint() {
   button.textContent = next >= token.length ? (hintConfirm ? c.hintSure : c.hintLast) : c.hintNext(next);
 }
 
+// Revealing a title word gives up the page. A copy in the text shows the same hint letters as the title bar.
+function inTitle(token) {
+  if (token.part === "title") return true;
+  const letters = (token.hint || "").toLowerCase();
+  return !!letters && game.tokens.some(tk => tk.part === "title" && tk.word && !tk.revealed
+    && tk.length === token.length && (tk.hint || "").toLowerCase() === letters);
+}
+
 $("hintBtn").addEventListener("click", async () => {
   if (!game || selected === null || busy) return;
   const token = game.tokens.find(tk => tk.i === selected);
   if (!token) return;
-  if ((token.hint || "").length + 1 >= token.length && !hintConfirm) {
+  if ((token.hint || "").length + 1 >= token.length && inTitle(token) && !hintConfirm) {
     hintConfirm = true;
     paintHint();
     return;
@@ -542,7 +550,7 @@ $("hintBtn").addEventListener("click", async () => {
       markCloser(game, answer.state);
       game = answer.state;
       markFresh(game);
-      say(answer.given ? t().hintGiven : t().hintShown(answer.letters));
+      say(answer.gaveUp ? t().hintGaveUp : answer.revealed ? t().hintRevealed : t().hintShown(answer.letters));
       render();
       if (game.finished) loadHistory();
     }
