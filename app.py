@@ -1,9 +1,13 @@
 """Caviardage local server. Run with: .venv\\Scripts\\python app.py"""
+import contextlib
+import json
+import logging
 import re
 import threading
+import time
 from pathlib import Path
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, g, jsonify, request, send_from_directory
 from waitress import serve
 
 from caviardage.articles import ArticleError, Articles
@@ -17,12 +21,44 @@ MAX_GAMES = 60  # Rounds kept in memory. Older ones are reloaded from disk when 
 GAME_ID = re.compile(r"[0-9a-f]{8}|[0-9a-f]{12}")
 PLAYER_ID = re.compile(r"[0-9a-f]{8}")
 
+SLOW_SECONDS = 0.5  # Requests slower than this are logged, to find what makes the game wait.
+
 app = Flask(__name__)
+log = logging.getLogger("caviardage")
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 closeness = Closeness()
 articles = Articles()
 saves = Saves()
 games = {}
 lock = threading.Lock()
+
+
+@contextlib.contextmanager
+def locked():
+    """The game lock, timing how long this request waited for it."""
+    start = time.perf_counter()
+    with lock:
+        g.lock_wait = time.perf_counter() - start
+        yield
+
+
+@app.before_request
+def _start_clock():
+    g.start = time.perf_counter()
+
+
+@app.after_request
+def _log_slow(response):
+    took = time.perf_counter() - g.start
+    response.headers["X-Took"] = f"{took * 1000:.0f}"
+    if took > SLOW_SECONDS:
+        parts = [f"slow {request.method} {request.path} {took:.2f}s"]
+        if "lock_wait" in g:
+            parts.append(f"waited {g.lock_wait:.2f}s for the lock")
+        if "fetch" in g:
+            parts.append(f"page fetch {g.fetch:.2f}s")
+        log.info(", ".join(parts))
+    return response
 
 
 def _remember(game):
@@ -71,11 +107,13 @@ def new_game():
     lang = body.get("lang") if body.get("lang") in ("fr", "en") else "fr"
     level = body.get("level") if body.get("level") in ("famous", "wide", "deep") else "famous"
     try:
+        fetch_start = time.perf_counter()
         article = articles.next(lang, level)
+        g.fetch = time.perf_counter() - fetch_start
     except ArticleError as error:
         return jsonify({"error": str(error)}), 503
     game = Game(article, lang, closeness, level=level)
-    with lock:
+    with locked():
         saves.save(game)
         _add_play(body.get("player"), game)
         _remember(game)
@@ -84,7 +122,7 @@ def new_game():
 
 @app.get("/api/game/<game_id>")
 def load_game(game_id):
-    with lock:
+    with locked():
         game = _game(game_id)
         if not game:
             return jsonify({"error": "expired"}), 404
@@ -102,7 +140,7 @@ def history(player_id):
     player = _player(player_id)
     if not player:
         return jsonify({"error": "invalid"}), 400
-    with lock:
+    with locked():
         for game_id in saves.unknown_status(player):
             game = _game(game_id)
             if game:
@@ -113,7 +151,7 @@ def history(player_id):
 @app.post("/api/guess")
 def guess():
     body = request.get_json(silent=True) or {}
-    with lock:
+    with locked():
         game = _game(body.get("id"))
         if not game:
             return jsonify({"error": "expired"}), 404
@@ -128,7 +166,7 @@ def guess():
 def hint():
     body = request.get_json(silent=True) or {}
     index = body.get("i")
-    with lock:
+    with locked():
         game = _game(body.get("id"))
         if not game:
             return jsonify({"error": "expired"}), 404
@@ -141,10 +179,21 @@ def hint():
         return jsonify(result)
 
 
+@app.post("/api/slow")
+def slow():
+    """The browser reports a request it waited long for, with what the server measured."""
+    body = request.get_json(silent=True) or {}
+    what = re.sub(r"[^a-z/]", "", str(body.get("what", "")))[:20]
+    waited, server = body.get("waited"), body.get("server")
+    if isinstance(waited, (int, float)):
+        log.info(f"browser waited {waited / 1000:.2f}s for {what} (server {json.dumps(server)} ms)")
+    return "", 204
+
+
 @app.post("/api/giveup")
 def give_up():
     body = request.get_json(silent=True) or {}
-    with lock:
+    with locked():
         game = _game(body.get("id"))
         if not game:
             return jsonify({"error": "expired"}), 404
