@@ -746,6 +746,12 @@ $("entry").addEventListener("submit", event => {
   const word = $("word").value.trim();
   if (!word || !game || game.finished) return;
   $("word").value = "";
+  if (selected !== null) {
+    // A new guess ends the hint selection.
+    selected = null;
+    hintConfirm = false;
+    render();
+  }
   queue.push(word);
   drain();
 });
