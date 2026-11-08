@@ -89,14 +89,14 @@ class Saves:
         """A player's rounds, newest first. The title stays hidden until a round is over."""
         with self.lock:
             rows = self.db.execute(
-                "SELECT g.id, g.lang, g.level, g.article, g.guesses, g.gave_up, g.finished, g.updated "
+                "SELECT g.id, g.lang, g.level, g.article, g.guesses, g.gave_up, g.finished, g.updated, g.hints "
                 "FROM plays p JOIN games g ON g.id = p.game WHERE p.player=? ORDER BY g.updated DESC LIMIT ?",
                 (player, HISTORY_LIMIT),
             ).fetchall()
         out = []
-        for game_id, lang, level, article, guesses, gave_up, finished, updated in rows:
+        for game_id, lang, level, article, guesses, gave_up, finished, updated, hints in rows:
             out.append({
-                "id": game_id, "lang": lang, "level": level, "count": len(json.loads(guesses)),
+                "id": game_id, "lang": lang, "level": level, "count": len(json.loads(guesses)), "hints": len(json.loads(hints or "[]")),
                 "finished": bool(finished), "gaveUp": bool(gave_up), "updated": updated,
                 "title": json.loads(article)["title"] if finished else None,
             })

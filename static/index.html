@@ -578,7 +578,7 @@ let historyRounds = [];
 function paintHistory() {
   const c = t();
   // A page opened and skipped without a guess isn't worth a line.
-  const rounds = historyRounds.filter(round => round.count || (game && game.id === round.id));
+  const rounds = historyRounds.filter(round => round.count || round.hints || (game && game.id === round.id));
   $("historyEmpty").textContent = rounds.length ? "" : c.historyEmpty;
   $("history").replaceChildren(...rounds.map(round => {
     const item = document.createElement("li");
@@ -589,7 +589,7 @@ function paintHistory() {
     const when = new Date(round.updated * 1000).toLocaleDateString(lang);
     const meta = document.createElement("span");
     meta.className = "meta";
-    meta.textContent = [c.guesses(round.count), status, round.lang.toUpperCase(), when].filter(Boolean).join(" · ");
+    meta.textContent = [c.guesses(round.count), round.hints ? c.hintsUsed(round.hints) : "", status, round.lang.toUpperCase(), when].filter(Boolean).join(" · ");
     open.append(round.title || c.ongoing, meta);
     open.addEventListener("click", () => resume(round.id));
     item.append(open);

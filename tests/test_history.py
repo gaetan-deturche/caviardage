@@ -54,6 +54,17 @@ def test_solved_round_shows_its_title(tmp_path):
     assert row["title"] == "Pont de Brooklyn" and row["finished"] and not row["gaveUp"]
 
 
+def test_hints_used_are_counted(tmp_path):
+    saves = Saves(tmp_path / "g.sqlite")
+    g = game()
+    assert saved(saves, g) and saves.history("aaaa1111")[0]["hints"] == 0
+    grand = next(t["i"] for t in g.words if t["text"] == "grand")
+    g.hint(grand)
+    g.hint(grand)
+    saves.save(g)
+    assert saves.history("aaaa1111")[0]["hints"] == 2
+
+
 def test_players_only_see_their_own_rounds(tmp_path):
     saves = Saves(tmp_path / "g.sqlite")
     mine, theirs = game(), game()
