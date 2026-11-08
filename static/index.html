@@ -96,9 +96,9 @@ select, .btn { background: var(--paper); border: 1px solid var(--line); border-r
 .shown.missed, .shown.given { background: var(--missed-bg); color: var(--missed-text); border-radius: 2px; box-shadow: 0 0 0 1px var(--missed-bg); }
 /* A selected bar, for hints, and the letters hints showed. */
 .slot.selected { outline: 2px dashed var(--focus); outline-offset: 2px; }
-.slot:has(.letters) { text-align: left; }
-.slot .letters { font-style: normal; color: var(--bar-text); font-weight: 600; }
-.slot .letters + span { margin-left: .15em; }
+.slot.hinted { background: transparent; padding: 0; }
+.slot.hinted .letters { color: var(--ink); font-style: normal; }
+.slot.hinted .rest { display: inline-block; background: var(--bar); border-radius: 2px; padding: 0 3px; }
 .dot.given { background: var(--missed-bg); }
 .used { color: var(--muted); font-size: 14px; }
 .used:empty { display: none; }
@@ -341,16 +341,18 @@ function makeSlot(token) {
     ? (percent !== null ? `${t().letters(token.length)} · ${t().percent(percent)}` : t().letters(token.length))
     : lit && percent !== null ? `${token.near} · ${t().percent(percent)}`
     : (token.near || " ");
-  if (token.hint && !shown) {
-    const letters = document.createElement("b");
+  if (token.hint) {
+    // Letters from hints show as plain text, and the bar only covers the rest, like the logo.
+    slot.classList.add("hinted");
+    slot.style.minWidth = "";
+    const letters = document.createElement("span");
     letters.className = "letters";
-    letters.textContent = token.hint + (token.near ? "" : "…");
-    slot.append(letters);
-    if (token.near) {
-      const near = document.createElement("span");
-      near.textContent = label;
-      slot.append(near);
-    }
+    letters.textContent = token.hint;
+    const rest = document.createElement("span");
+    rest.className = "rest";
+    rest.style.minWidth = `${Math.max(token.length - token.hint.length, 1) * 0.6}em`;
+    rest.textContent = label;
+    slot.append(letters, rest);
   } else {
     slot.textContent = label;
   }
