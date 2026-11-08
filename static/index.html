@@ -200,7 +200,7 @@ const COPY = {
     easy: "Mode facile : voir le % en cliquant sur une barre", far: "essai loin", close: "essai proche", percent: n => `${n} %`, closeLabel: (n, word) => `« ${word} » est proche à ${n} %`, guessView: "Revoir la page cachée avec mes essais", missedSample: "Surlignés", missedNote: ": les mots que vous n'aviez pas trouvés.", historyTitle: "Historique", historyEmpty: "Vos pages apparaîtront ici.", ongoing: "Page en cours", solved: "trouvée", gaveUp: "abandon", guesses: n => `${n} essai${n > 1 ? "s" : ""}`, playerLabel: "Votre code :", playerHint: "Entrez-le sur un autre appareil pour y retrouver votre historique.", playerPlaceholder: "Code d'un appareil", playerUse: "Utiliser", playerBad: "Ce code n'est pas valide : il faut 8 caractères, comme 7F3A-91C2.", playerDone: "Historique chargé. Cet appareil utilise maintenant ce code.", team: "À plusieurs", teamHint: "Partagez ce code : vos amis jouent la même page, et chaque mot trouvé apparaît chez tout le monde.", joinHint: "Code d'un ami", joinSend: "Rejoindre", noCode: "Ce code ne correspond à aucune partie. Vérifiez-le auprès de votre ami.", others: n => `${n} nouvel${n > 1 ? "s" : ""} essai${n > 1 ? "s" : ""} d'un autre joueur.`, share: "Copier le lien", copied: "Lien copié. Ouvrez-le n'importe où pour reprendre cette partie.", gone: "Cette partie est introuvable. Voici une nouvelle page.", famous: "Pages très connues", wide: "Pages connues", deep: "100 000 pages (difficile)", next: "Nouvelle page", giveup: "Abandonner", sure: "Confirmer l'abandon",
     send: "Essayer", placeholder: "Un mot, sous n'importe quelle forme", count: "Essais", legend: "Couleurs", log: "Vos essais",
     same: "Mot trouvé, quelle que soit la forme", none: "Rien de proche", lit: "Encadré : touché ou amélioré par le dernier essai", jump: (a, n) => `Voir ${a}/${n}`,
-    loading: "Choix d'une page…", noPage: "Wikipédia n'a pas renvoyé de page. Attendez un instant, puis cliquez sur Nouvelle page.", dup: w => `Déjà essayé : ${w}.`, unknown: w => `« ${w} » n'est pas un mot connu. Cet essai ne compte pas.`,
+    loading: "Choix d'une page…", opening: "Ouverture de la partie…", noPage: "Wikipédia n'a pas renvoyé de page. Attendez un instant, puis cliquez sur Nouvelle page.", dup: w => `Déjà essayé : ${w}.`, unknown: w => `« ${w} » n'est pas un mot connu. Cet essai ne compte pas.`,
     invalid: "Entrez un seul mot.", nothing: w => `Rien de proche pour « ${w} ».`, expired: "Cette partie a expiré. Lancez une nouvelle page.", net: "Le serveur ne répond pas. Vérifiez qu'il tourne toujours.",
     hit: (w, n) => `${w} : ${n} mot${n > 1 ? "s" : ""} révélé${n > 1 ? "s" : ""}.`,
     near: (w, n, up) => `${w} : proche de ${n} mot${n > 1 ? "s" : ""} (${up ? `${up} amélioré${up > 1 ? "s" : ""}` : "aucun amélioré"}).`,
@@ -214,7 +214,7 @@ const COPY = {
     easy: "Easy mode: see the % when clicking a bar", far: "guess far", close: "guess close", percent: n => `${n}%`, closeLabel: (n, word) => `"${word}" is ${n}% close`, guessView: "Show the hidden page with my guesses", missedSample: "Highlighted", missedNote: "words are the ones you hadn't found.", historyTitle: "History", historyEmpty: "Your pages will appear here.", ongoing: "Page in progress", solved: "solved", gaveUp: "gave up", guesses: n => `${n} guess${n > 1 ? "es" : ""}`, playerLabel: "Your code:", playerHint: "Enter it on another device to see your history there.", playerPlaceholder: "A device's code", playerUse: "Use", playerBad: "That code isn't valid: it needs 8 characters, like 7F3A-91C2.", playerDone: "History loaded. This device now uses this code.", team: "Play together", teamHint: "Share this code: your friends play the same page, and every word found shows up for everyone.", joinHint: "A friend's code", joinSend: "Join", noCode: "That code doesn't match any game. Check it with your friend.", others: n => `${n} new guess${n > 1 ? "es" : ""} from another player.`, share: "Copy link", copied: "Link copied. Open it anywhere to continue this game.", gone: "This game wasn't found. Here's a new page.", famous: "Very famous pages", wide: "Well-known pages", deep: "100,000 pages (hard)", next: "New page", giveup: "Give up", sure: "Confirm giving up",
     send: "Try", placeholder: "One word, in any form", count: "Guesses", legend: "Colours", log: "Your guesses",
     same: "Word found, in any form", none: "Nothing close", lit: "Outlined: lit or improved by the last guess", jump: (a, n) => `Show ${a}/${n}`,
-    loading: "Picking a page…", noPage: "Wikipedia didn't return a page. Wait a moment, then click New page.", dup: w => `Already tried: ${w}.`, unknown: w => `"${w}" isn't a known word. This guess doesn't count.`,
+    loading: "Picking a page…", opening: "Opening the game…", noPage: "Wikipedia didn't return a page. Wait a moment, then click New page.", dup: w => `Already tried: ${w}.`, unknown: w => `"${w}" isn't a known word. This guess doesn't count.`,
     invalid: "Enter a single word.", nothing: w => `Nothing close to "${w}".`, expired: "This game expired. Start a new page.", net: "The server isn't responding. Check that it's still running.",
     hit: (w, n) => `${w}: ${n} word${n > 1 ? "s" : ""} revealed.`,
     near: (w, n, up) => `${w}: close to ${n} word${n > 1 ? "s" : ""} (${up || "none"} improved).`,
@@ -630,21 +630,26 @@ function adopt(state, resumed) {
 }
 
 async function resume(id) {
+  // Most rounds open at once. Say so when one takes longer, rather than showing nothing.
+  const notice = setTimeout(() => say(t().opening), 400);
   try {
     const response = await fetch(`api/game/${encodeURIComponent(id)}?player=${player}`);
-    if (response.status === 404) return false;
+    if (response.status === 404) { say(""); return false; }
     const state = await response.json();
-    if (state.error) return false;
+    if (state.error) { say(""); return false; }
     adopt(state, true);
     return true;
   } catch {
     say(t().net, true);
     return true; // The round may still exist, so don't replace it because of a network error.
+  } finally {
+    clearTimeout(notice);
   }
 }
 
 async function start() {
   paintCopy();
+  $("loading").textContent = t().opening;
   loadHistory();
   const fromLink = location.hash.slice(1);
   const id = fromLink || store.get("cav-game", "");

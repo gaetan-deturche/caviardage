@@ -57,8 +57,10 @@ class Game:
 
     @classmethod
     def restore(cls, game_id, saved, closeness):
-        """Rebuild a saved round by replaying its guesses."""
+        """Rebuild a saved round from its snapshot, or by replaying its guesses when it has none."""
         game = cls(saved["article"], saved["lang"], closeness, level=saved["level"], game_id=game_id)
+        if game._apply(saved.get("snapshot")):
+            return game
         hints = list(saved.get("hints") or [])
         for word in saved["guesses"] + [None]:
             while hints and hints[0][0] <= len(game.guesses):
@@ -68,6 +70,34 @@ class Game:
         if saved["gave_up"]:
             game.give_up()
         return game
+
+    SNAPSHOT_FIELDS = ("revealed", "given", "near", "near_rank", "near_score", "shade")
+
+    def snapshot(self):
+        """Everything guesses and hints changed, so reopening a round needs no replay."""
+        return {
+            "tokens": len(self.tokens),
+            "words": [[t["i"]] + [t[f] for f in self.SNAPSHOT_FIELDS] for t in self.words if t["revealed"] or t["near"]],
+            "guesses": list(self.guesses.values()), "hints": self.hints, "hintLog": self.hint_log,
+            "otherLeft": sorted(self.other_name_left), "finished": self.finished, "gaveUp": self.gave_up,
+        }
+
+    def _apply(self, snapshot):
+        """Load a snapshot. False if there is none or the page now splits into different words."""
+        if not snapshot or snapshot.get("tokens") != len(self.tokens):
+            return False
+        by_index = {t["i"]: t for t in self.words}
+        if any(row[0] not in by_index for row in snapshot["words"]):
+            return False
+        for row in snapshot["words"]:
+            by_index[row[0]].update(zip(self.SNAPSHOT_FIELDS, row[1:]))
+        self.guesses = {text.fold(g["word"]): g for g in snapshot["guesses"]}
+        self.hints = dict(snapshot["hints"])
+        self.hint_log = [tuple(entry) for entry in snapshot["hintLog"]]
+        self.other_name_left = set(snapshot["otherLeft"])
+        self.finished = snapshot["finished"]
+        self.gave_up = snapshot["gaveUp"]
+        return True
 
     def _add(self, token, part):
         token = {**token, "part": part, "i": len(self.tokens)}

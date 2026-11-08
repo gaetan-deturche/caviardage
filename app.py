@@ -13,7 +13,7 @@ from caviardage.saves import Saves
 
 PORT = 5180
 STATIC = Path(__file__).resolve().parent / "static"
-MAX_GAMES = 20  # Rounds kept in memory. Older ones are reloaded from disk when needed.
+MAX_GAMES = 60  # Rounds kept in memory. Older ones are reloaded from disk when needed.
 GAME_ID = re.compile(r"[0-9a-f]{8}|[0-9a-f]{12}")
 PLAYER_ID = re.compile(r"[0-9a-f]{8}")
 
@@ -42,6 +42,8 @@ def _game(game_id):
     if not saved:
         return None
     game = Game.restore(game_id, saved, closeness)
+    if not saved.get("snapshot"):
+        saves.set_snapshot(game)  # Saved before snapshots existed: replayed once, fast from now on.
     _remember(game)
     return game
 
