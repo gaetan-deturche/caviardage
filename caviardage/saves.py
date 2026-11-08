@@ -24,6 +24,8 @@ class Saves:
             columns = [row[1] for row in self.db.execute("PRAGMA table_info(games)")]
             if "finished" not in columns:
                 self.db.execute("ALTER TABLE games ADD COLUMN finished INTEGER")
+            if "hints" not in columns:
+                self.db.execute("ALTER TABLE games ADD COLUMN hints TEXT")
             self.db.execute(
                 "CREATE TABLE IF NOT EXISTS plays(player TEXT, game TEXT, PRIMARY KEY(player, game)) WITHOUT ROWID"
             )
@@ -34,25 +36,25 @@ class Saves:
         row = (
             game.id, game.lang, game.level, json.dumps(game.article, ensure_ascii=False),
             json.dumps([g["word"] for g in game.guesses.values()], ensure_ascii=False),
-            int(game.gave_up), time.time(), int(game.finished),
+            int(game.gave_up), time.time(), int(game.finished), json.dumps(game.hint_log, ensure_ascii=False),
         )
         with self.lock, self.db:
             self.db.execute(
-                "INSERT OR REPLACE INTO games(id, lang, level, article, guesses, gave_up, updated, finished) "
-                "VALUES (?,?,?,?,?,?,?,?)", row,
+                "INSERT OR REPLACE INTO games(id, lang, level, article, guesses, gave_up, updated, finished, hints) "
+                "VALUES (?,?,?,?,?,?,?,?,?)", row,
             )
 
     def load(self, game_id):
         """The saved round as a dict, or None."""
         with self.lock:
             row = self.db.execute(
-                "SELECT lang, level, article, guesses, gave_up FROM games WHERE id=?", (game_id,)
+                "SELECT lang, level, article, guesses, gave_up, hints FROM games WHERE id=?", (game_id,)
             ).fetchone()
         if not row:
             return None
         return {
             "lang": row[0], "level": row[1], "article": json.loads(row[2]),
-            "guesses": json.loads(row[3]), "gave_up": bool(row[4]),
+            "guesses": json.loads(row[3]), "gave_up": bool(row[4]), "hints": json.loads(row[5] or "[]"),
         }
 
     def add_play(self, player, game_id):

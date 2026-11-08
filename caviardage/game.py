@@ -29,6 +29,8 @@ class Game:
         self.closeness = closeness
         self.article = article
         self.guesses = {}
+        self.hints = {}  # Lowercase word -> how many of its first letters a hint showed.
+        self.hint_log = []  # (guesses made before it, lowercase word), to replay in order.
         self.tokens = []
         self.finished = False
         self.gave_up = False
@@ -57,8 +59,12 @@ class Game:
     def restore(cls, game_id, saved, closeness):
         """Rebuild a saved round by replaying its guesses."""
         game = cls(saved["article"], saved["lang"], closeness, level=saved["level"], game_id=game_id)
-        for word in saved["guesses"]:
-            game.guess(word)
+        hints = list(saved.get("hints") or [])
+        for word in saved["guesses"] + [None]:
+            while hints and hints[0][0] <= len(game.guesses):
+                game.hint_word(hints.pop(0)[1])
+            if word is not None:
+                game.guess(word)
         if saved["gave_up"]:
             game.give_up()
         return game
@@ -66,7 +72,7 @@ class Game:
     def _add(self, token, part):
         token = {**token, "part": part, "i": len(self.tokens)}
         if token["word"]:
-            token.update(revealed=False, near=None, near_rank=0, near_score=-1.0, shade=None)
+            token.update(revealed=False, given=False, near=None, near_rank=0, near_score=-1.0, shade=None)
             if part == "title":
                 self.title_slots.append(token)
         self.tokens.append(token)
@@ -105,16 +111,20 @@ class Game:
             elif token["revealed"] or show_all:
                 found = {
                     "i": token["i"], "word": True, "text": token["text"], "part": token["part"],
-                    "revealed": True, "missed": not token["revealed"],
+                    "revealed": True, "missed": not token["revealed"], "given": token["given"],
                 }
                 if token.get("script"):
                     found["script"] = token["script"]
                 out.append(found)
             else:
-                out.append({
+                hidden = {
                     "i": token["i"], "word": True, "length": len(token["text"]), "part": token["part"],
                     "near": token["near"], "tier": _tier_name(token["near_rank"]), "shade": token["shade"],
-                })
+                }
+                letters = self.hints.get(token["text"].lower())
+                if letters:
+                    hidden["hint"] = token["text"][:letters]
+                out.append(hidden)
         return out
 
     def _finish_payload(self):
@@ -124,6 +134,7 @@ class Game:
         payload = {
             "id": self.id, "lang": self.lang, "level": self.level, "tokens": self.public_tokens(),
             "count": len(self.guesses), "log": list(self.guesses.values()),
+            "hints": len(self.hint_log), "version": len(self.guesses) + len(self.hint_log),
             "finished": self.finished, "gaveUp": self.gave_up,
         }
         if self.finished:
@@ -198,10 +209,40 @@ class Game:
         self.other_name_left = {
             i for i in self.other_name_left if not guess_keys & text.keys(self.other_name[i], self.lang)
         }
+        self._check_end()
+        return {"word": word, "tier": best, "hits": len(same), "near": near_hits, "matches": matches, "state": self.state()}
+
+    def _check_end(self):
         title_found = self.title_slots and all(t["revealed"] for t in self.title_slots)
         if title_found or (self.other_name and not self.other_name_left):
             self.finished = True
-        return {"word": word, "tier": best, "hits": len(same), "near": near_hits, "matches": matches, "state": self.state()}
+            # A title word shown by hints, not found, makes the round a give-up.
+            self.gave_up = self.gave_up or any(t["given"] for t in self.title_slots)
+
+    def hint(self, index):
+        """Show one more letter of a hidden word. Its last letter reveals it, as given up."""
+        if self.finished:
+            return {"error": "finished"}
+        token = next((t for t in self.words if t["i"] == index), None)
+        if token is None or token["revealed"]:
+            return {"error": "invalid"}
+        letters, given = self.hint_word(token["text"].lower())
+        return {"letters": letters, "given": given, "state": self.state()}
+
+    def hint_word(self, key):
+        """The hint itself, by lowercase word, so a saved round can replay it."""
+        tokens = [t for t in self.words if t["text"].lower() == key and not t["revealed"]]
+        if not tokens:
+            return 0, False
+        letters = self.hints.get(key, 0) + 1
+        self.hints[key] = letters
+        self.hint_log.append((len(self.guesses), key))
+        given = letters >= len(tokens[0]["text"])
+        if given:
+            for token in tokens:
+                token.update(revealed=True, given=True)
+            self._check_end()
+        return letters, given
 
     def _known(self, word):
         return text.is_real_word(word, self.lang) or self.closeness.in_vocabulary(word, self.lang)

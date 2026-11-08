@@ -88,7 +88,7 @@ def load_game(game_id):
             return jsonify({"error": "expired"}), 404
         # Other players' browsers ask often, so answer briefly when nothing has changed.
         known = request.args.get("known", type=int)
-        if known == len(game.guesses) and not game.finished:
+        if known == len(game.guesses) + len(game.hint_log) and not game.finished:
             return jsonify({"same": True})
         if known is None:
             _add_play(request.args.get("player"), game)
@@ -116,6 +116,23 @@ def guess():
         if not game:
             return jsonify({"error": "expired"}), 404
         result = game.guess(str(body.get("word", "")))
+        if "error" not in result:
+            saves.save(game)
+            _add_play(body.get("player"), game)
+        return jsonify(result)
+
+
+@app.post("/api/hint")
+def hint():
+    body = request.get_json(silent=True) or {}
+    index = body.get("i")
+    with lock:
+        game = _game(body.get("id"))
+        if not game:
+            return jsonify({"error": "expired"}), 404
+        if not isinstance(index, int):
+            return jsonify({"error": "invalid"}), 400
+        result = game.hint(index)
         if "error" not in result:
             saves.save(game)
             _add_play(body.get("player"), game)
