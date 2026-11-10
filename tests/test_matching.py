@@ -73,3 +73,21 @@ def test_tokenize_keeps_text_intact():
     tokens = text.tokenize(sample)
     assert "".join(t["text"] for t in tokens) == sample
     assert [t["text"] for t in tokens if t["word"]][:3] == ["L", "histoire", "du"]
+
+
+import pytest as _pytest
+
+
+@_pytest.mark.parametrize("form,verb", [
+    ("parlée", "parler"), ("parlées", "parler"), ("parlés", "parler"), ("parlé", "parler"),
+    ("connue", "connaître"), ("nées", "naître"), ("arrivées", "arriver"),
+])
+def test_past_participles_match_their_verb(form, verb):
+    from caviardage.text import keys
+    assert keys(form, "fr") & keys(verb, "fr")
+
+
+@_pytest.mark.parametrize("noun,verb", [("parties", "partir"), ("sorties", "sortir"), ("pensées", "penser")])
+def test_nouns_from_verbs_stay_apart(noun, verb):
+    from caviardage.text import keys
+    assert not keys(noun, "fr") & keys(verb, "fr")

@@ -129,6 +129,17 @@ def _participle_verb(word, lang):
     return store.lemma(lang, word[:-3] + "ait")
 
 
+def _lemma(lang, word):
+    """The word list's base form, followed to the end: parlées -> parlée -> parlé -> parler."""
+    lemma = store.lemma(lang, word)
+    for _ in range(3):
+        further = lemma and store.lemma(lang, lemma)
+        if not further or further == lemma:
+            break
+        lemma = further
+    return lemma
+
+
 def lemmas(word, lang):
     """Every base form a word could have, most likely first."""
     lower = word.lower()
@@ -136,7 +147,7 @@ def lemmas(word, lang):
     spellings = [lower] + _accent_variants(lower, lang)
     found = []
     for spelling in spellings:
-        for lemma in AMBIGUOUS.get(lang, {}).get(spelling, []) + [store.lemma(lang, spelling) or _plural_lemma(spelling, lang) or spelling]:
+        for lemma in AMBIGUOUS.get(lang, {}).get(spelling, []) + [_lemma(lang, spelling) or _plural_lemma(spelling, lang) or spelling]:
             if lemma not in found:
                 found.append(lemma)
     return tuple(found)
