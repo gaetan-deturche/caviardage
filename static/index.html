@@ -760,9 +760,27 @@ $("entry").addEventListener("submit", event => {
     hintConfirm = false;
     render();
   }
+  if (typed[typed.length - 1] !== word) typed.push(word);
+  if (typed.length > 100) typed.shift();
+  typedAt = typed.length;
   queue.push(word);
   drain();
 });
+
+// Up and down go through what was typed, unknown words included, to fix a typo or try another ending.
+const typed = [];
+let typedAt = 0, draft = "";
+$("word").addEventListener("keydown", event => {
+  if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+  if (!typed.length) return;
+  event.preventDefault();
+  if (typedAt === typed.length) draft = $("word").value;
+  typedAt = Math.max(0, Math.min(typed.length, typedAt + (event.key === "ArrowUp" ? -1 : 1)));
+  const input = $("word");
+  input.value = typedAt === typed.length ? draft : typed[typedAt];
+  input.setSelectionRange(input.value.length, input.value.length);
+});
+$("word").addEventListener("input", () => { typedAt = typed.length; });
 $("next").addEventListener("click", newGame);
 $("easy").addEventListener("change", () => {
   easy = $("easy").checked;
