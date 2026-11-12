@@ -97,3 +97,19 @@ def test_nouns_from_verbs_stay_apart(noun, verb):
 def test_elided_qu_words_match_their_full_form(elided, full):
     from caviardage.text import keys
     assert keys(elided, "fr") & keys(full, "fr")
+
+
+@_pytest.mark.parametrize("masculine,feminine", [
+    ("poète", "poétesse"), ("poètes", "poétesses"), ("prince", "princesse"), ("duc", "duchesse"), ("dieu", "déesse"),
+    ("acteur", "actrice"), ("directeur", "directrice"), ("chanteur", "chanteuse"), ("empereur", "impératrice"),
+    ("héros", "héroïne"), ("chasseur", "chasseresse"), ("ami", "amie"),
+])
+def test_feminine_nouns_match_their_masculine(masculine, feminine):
+    from caviardage.text import keys
+    assert keys(masculine, "fr") & keys(feminine, "fr")
+
+
+@_pytest.mark.parametrize("word,other", [("jeune", "jeunesse"), ("sage", "sagesse"), ("vite", "vitesse"), ("roi", "reine")])
+def test_words_ending_like_feminines_stay_apart(word, other):
+    from caviardage.text import keys
+    assert not keys(word, "fr") & keys(other, "fr")

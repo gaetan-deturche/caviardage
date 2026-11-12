@@ -179,6 +179,43 @@ def related_forms(word, lang):
     return frozenset(forms)
 
 
+# Feminine nouns the word list files apart from their masculine. Endings like -esse are not
+# enough on their own: jeunesse, sagesse and vitesse are not feminines of jeune, sage and vite.
+FEMININES = {
+    "poétesse": "poète", "princesse": "prince", "comtesse": "comte", "vicomtesse": "vicomte", "duchesse": "duc",
+    "archiduchesse": "archiduc", "hôtesse": "hôte", "maîtresse": "maître", "déesse": "dieu", "tigresse": "tigre",
+    "ogresse": "ogre", "ânesse": "âne", "abbesse": "abbé", "chanoinesse": "chanoine", "diablesse": "diable",
+    "prophétesse": "prophète", "druidesse": "druide", "traîtresse": "traître", "chasseresse": "chasseur",
+    "pécheresse": "pécheur", "vengeresse": "vengeur", "enchanteresse": "enchanteur", "devineresse": "devin",
+    "pauvresse": "pauvre", "mairesse": "maire", "papesse": "pape", "prêtresse": "prêtre", "ivrognesse": "ivrogne",
+    "doctoresse": "docteur", "défenderesse": "défendeur", "demanderesse": "demandeur", "héroïne": "héros",
+    "impératrice": "empereur", "ambassadrice": "ambassadeur", "épouse": "époux", "veuve": "veuf", "louve": "loup",
+    "chatte": "chat", "amie": "ami", "copine": "copain", "compagne": "compagnon", "speakerine": "speaker",
+}
+
+
+NOT_FEMININES = {"matrice"}  # Not a woman mateur.
+
+
+def _masculine(lower, lang):
+    """The masculine of a French feminine noun: poétesse -> poète, actrice -> acteur, chanteuse -> chanteur."""
+    if lang != "fr":
+        return None
+    for word in (lower, lower[:-1] if lower.endswith("s") else None):
+        if not word:
+            continue
+        if word in FEMININES:
+            return FEMININES[word]
+        if word in NOT_FEMININES:
+            return None
+        for ending, masculine in (("trice", "teur"), ("euse", "eur")):
+            if word.endswith(ending) and len(word) >= len(ending) + 2:
+                base = word[: -len(ending)] + masculine
+                if _known(base, lang):
+                    return base
+    return None
+
+
 @functools.lru_cache(maxsize=4000)
 def keys(word, lang):
     """The matching keys of a word."""
@@ -189,6 +226,10 @@ def keys(word, lang):
     if _unelide(lower, lang) != lower:
         out.add(fold(_unelide(lower, lang)))
     out.update(fold(lemma) for lemma in lemmas(word, lang))
+    masculine = _masculine(lower, lang)
+    if masculine:
+        out.add(fold(masculine))
+        out.update(fold(lemma) for lemma in lemmas(masculine, lang))
     # Plurals the lemmatiser does not know: lorises -> loris.
     if len(lower) >= 4 and not _known(lower, lang):
         base = fold(lower)
