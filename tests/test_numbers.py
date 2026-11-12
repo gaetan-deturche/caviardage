@@ -23,7 +23,7 @@ def test_article_numbers(word, kind, value):
 
 
 @pytest.mark.parametrize("word", [
-    "dix", "vie", "Vie", "pont", "De", "Le", "Me", "Ce", "D", "L", "M", "C", "CD", "DC", "MC", "CM", "XL", "IIII", "VX", "IC", "mix",
+    "vie", "Vie", "pont", "De", "Le", "Me", "Ce", "D", "L", "M", "C", "CD", "DC", "MC", "CM", "XL", "IIII", "VX", "IC", "mix",
 ])
 def test_not_numbers_in_articles(word):
     assert text.number_value(word, "fr") is None
@@ -42,7 +42,7 @@ def test_guesses(word, kind, value):
     assert text.number_value(word, "fr", guess=True) == (kind, value)
 
 
-@pytest.mark.parametrize("word", ["vie", "dix", "mi", "ci", "di", "pont"])
+@pytest.mark.parametrize("word", ["vie", "mi", "ci", "di", "pont"])
 def test_words_stay_words_in_guesses(word):
     assert text.number_value(word, "fr", guess=True) is None
 

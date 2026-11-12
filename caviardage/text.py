@@ -219,6 +219,20 @@ DIGITS_RE = re.compile(r"(\d{1,15})" + ORDINAL)
 ROMAN_WORD_RE = re.compile(r"([IVXLCDM]+)" + ORDINAL)
 LOWER_ROMAN_RE = re.compile(r"([ivx]+)" + ORDINAL)
 ROMAN_RE = re.compile(r"M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})")
+# Numbers written as words are numbers of their own kind: two lights up four, but 4 does not.
+# Left out: one, un and une are mostly pronouns and articles, neuf is also "new".
+NUMBER_WORDS = {
+    "en": dict(zip(
+        "zero two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen "
+        "seventeen eighteen nineteen twenty thirty forty fifty sixty seventy eighty ninety hundred thousand "
+        "million billion".split(),
+        [0, *range(2, 21), 30, 40, 50, 60, 70, 80, 90, 100, 1000, 10**6, 10**9])),
+    "fr": dict(zip(
+        "zéro deux trois quatre cinq six sept huit dix onze douze treize quatorze quinze seize vingt trente "
+        "quarante cinquante soixante septante huitante octante nonante cent mille million milliard".split(),
+        [0, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 20, 30, 40, 50, 60, 70, 80, 80, 90, 100, 1000, 10**6, 10**9])),
+}
+
 ROMAN_VALUES = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100, "D": 500, "M": 1000}
 
 
@@ -236,9 +250,9 @@ def _roman(body, lang):
 
 
 def number_value(word, lang, guess=False):
-    """("digits", 1883) for 1883 or 1er, ("roman", 19) for XIXe, None for dix or vie.
+    """("digits", 1883) for 1883 or 1er, ("roman", 19) for XIXe, ("words", 10) for dix, None for vie.
 
-    The two kinds never match each other: X is not close to 9 or 10.
+    The kinds never match each other: X and dix are not close to 9 or 10.
     """
     word = unicodedata.normalize("NFKC", word)  # ² is the digit 2, and Ⅳ is the numeral IV.
     digits = DIGITS_RE.fullmatch(word)
@@ -247,6 +261,12 @@ def number_value(word, lang, guess=False):
     roman = ROMAN_WORD_RE.fullmatch(word)
     if roman:
         return _roman(roman.group(1), lang)
+    lower = word.lower()
+    words = NUMBER_WORDS.get(lang, {})
+    if lower in words:
+        return ("words", words[lower])
+    if lower.endswith("s") and lower[:-1] in words and words[lower[:-1]] >= 20:
+        return ("words", words[lower[:-1]])  # hundreds, quatre-vingts, millions
     if guess and store.lemma(lang, word.lower()) is None:
         lower = LOWER_ROMAN_RE.fullmatch(word.lower())
         if lower:
