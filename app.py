@@ -120,6 +120,20 @@ def new_game():
         return jsonify(game.state())
 
 
+@app.post("/api/fresh")
+def fresh_game():
+    """A new round on the same page, without anyone's guesses, to share the puzzle itself."""
+    body = request.get_json(silent=True) or {}
+    with locked():
+        source = _game(str(body.get("id", "")))
+        if not source:
+            return jsonify({"error": "expired"}), 404
+        game = Game(source.article, source.lang, closeness, level=source.level)
+        saves.save(game)
+        _remember(game)
+        return jsonify({"id": game.id})
+
+
 @app.get("/api/game/<game_id>")
 def load_game(game_id):
     with locked():
