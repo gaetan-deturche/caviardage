@@ -91,3 +91,9 @@ def test_past_participles_match_their_verb(form, verb):
 def test_nouns_from_verbs_stay_apart(noun, verb):
     from caviardage.text import keys
     assert not keys(noun, "fr") & keys(verb, "fr")
+
+
+@_pytest.mark.parametrize("elided,full", [("lorsqu", "lorsque"), ("puisqu", "puisque"), ("jusqu", "jusque"), ("quoiqu", "quoique"), ("Lorsqu", "lorsque")])
+def test_elided_qu_words_match_their_full_form(elided, full):
+    from caviardage.text import keys
+    assert keys(elided, "fr") & keys(full, "fr")

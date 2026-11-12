@@ -140,10 +140,21 @@ def _lemma(lang, word):
     return lemma
 
 
+def _unelide(lower, lang):
+    """The full form of an elided French word: l -> le, lorsqu -> lorsque, jusqu -> jusque."""
+    if lang != "fr":
+        return lower
+    if lower in ELISIONS:
+        return ELISIONS[lower]
+    if lower.endswith("qu") and len(lower) > 2:
+        return lower + "e"
+    return lower
+
+
 def lemmas(word, lang):
     """Every base form a word could have, most likely first."""
     lower = word.lower()
-    lower = ELISIONS.get(lower, lower) if lang == "fr" else lower
+    lower = _unelide(lower, lang)
     spellings = [lower] + _accent_variants(lower, lang)
     found = []
     for spelling in spellings:
@@ -175,8 +186,8 @@ def keys(word, lang):
     out = {fold(lower)}
     if FRACTION_SLASH in fold(lower):
         out.update(fold(lower).split(FRACTION_SLASH))  # ½ matches 1 and 2.
-    if lang == "fr" and lower in ELISIONS:
-        out.add(fold(ELISIONS[lower]))
+    if _unelide(lower, lang) != lower:
+        out.add(fold(_unelide(lower, lang)))
     out.update(fold(lemma) for lemma in lemmas(word, lang))
     # Plurals the lemmatiser does not know: lorises -> loris.
     if len(lower) >= 4 and not _known(lower, lang):
