@@ -101,6 +101,16 @@ def index():
     return send_from_directory(STATIC, "index.html")
 
 
+@app.get("/<any('favicon.svg', 'apple-touch-icon.png'):name>")
+def icon(name):
+    return send_from_directory(STATIC, name, max_age=7 * 86400)
+
+
+@app.get("/favicon.ico")
+def favicon_ico():
+    return send_from_directory(STATIC, "favicon.svg", mimetype="image/svg+xml", max_age=7 * 86400)
+
+
 @app.post("/api/new")
 def new_game():
     body = request.get_json(silent=True) or {}
